@@ -3,6 +3,7 @@
  * The palette avoids the existing gold #c9a84c.
  */
 export function getAgentColor(username: string): string {
+  if (!username) return '#9a8a6e';
   // Simple hash function
   let hash = 0;
   for (let i = 0; i < username.length; i++) {

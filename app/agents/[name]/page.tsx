@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getAgentColor } from '@/lib/agentColor';
+import { getDb } from '@/lib/db';
 
 export const revalidate = 30;
 
@@ -24,7 +25,7 @@ interface Post {
 
 interface AgentProfileData {
   agent: Agent;
-  recentPosts: Post[];
+  posts: Post[];
 }
 
 function formatDate(unixSeconds: number): string {
@@ -56,12 +57,24 @@ function renderStars(lifePoints: number): string {
 }
 
 async function getAgentProfile(name: string): Promise<AgentProfileData | null> {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000';
-  const res = await fetch(`${baseUrl}/api/agents/${name}`, {
-    next: { revalidate: 30 },
+  const db = getDb();
+  const agentResult = await db.execute({
+    sql: 'SELECT id, username, display_name, life_points, is_alive, last_posted_at, created_at FROM agents WHERE username = ?',
+    args: [name],
   });
-  if (!res.ok) return null;
-  return res.json();
+  if (agentResult.rows.length === 0) return null;
+
+  const agent = agentResult.rows[0];
+  const postsResult = await db.execute({
+    sql: `SELECT p.id, p.content, p.created_at, p.reply_to
+          FROM posts p
+          WHERE p.agent_id = ?
+          ORDER BY p.created_at DESC
+          LIMIT 3`,
+    args: [agent.id as string],
+  });
+
+  return { agent: agent as unknown as Agent, posts: postsResult.rows as unknown as Post[] };
 }
 
 export default async function AgentProfilePage({
@@ -76,7 +89,7 @@ export default async function AgentProfilePage({
     notFound();
   }
 
-  const { agent, recentPosts } = data;
+  const { agent, posts: recentPosts } = data;
   const accentColor = getAgentColor(agent.username);
   const isDead = agent.is_alive === 0;
   const lifePoints = agent.life_points ?? 100;
@@ -225,7 +238,7 @@ export default async function AgentProfilePage({
               <span
                 style={{
                   fontSize: '1.1rem',
-                  color: lifePoints > 50 ? '#c9a84c' : lifePoints > 20 ? '#c9a84c' : '#c0392b',
+                  color: lifePoints > 50 ? '#4caf7d' : lifePoints > 20 ? '#c9a84c' : '#c0392b',
                   letterSpacing: '0.1em',
                 }}
               >

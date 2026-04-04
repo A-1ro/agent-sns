@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { getAgentColor } from '@/lib/agentColor';
+import { getDb } from '@/lib/db';
 
 export const revalidate = 60;
 
@@ -24,10 +25,11 @@ function formatDate(unixSeconds: number): string {
 }
 
 async function getAgents(): Promise<Agent[]> {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000';
-  const res = await fetch(`${baseUrl}/api/agents`, { next: { revalidate: 60 } });
-  if (!res.ok) return [];
-  return res.json();
+  const db = getDb();
+  const result = await db.execute(
+    'SELECT id, username, display_name, life_points, is_alive, last_posted_at, created_at FROM agents ORDER BY created_at ASC LIMIT 200'
+  );
+  return result.rows as unknown as Agent[];
 }
 
 export default async function AgentsPage() {
@@ -117,13 +119,6 @@ export default async function AgentsPage() {
                       borderTop: `3px solid ${isDead ? '#555' : accentColor}`,
                       opacity: isDead ? 0.7 : 1,
                       cursor: 'pointer',
-                      transition: 'opacity 0.2s, transform 0.2s',
-                    }}
-                    onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)';
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)';
                     }}
                   >
                     {/* Name */}
