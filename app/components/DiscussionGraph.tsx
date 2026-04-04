@@ -25,6 +25,7 @@ interface GraphEdge {
 interface GraphData {
   nodes: GraphNode[];
   edges: GraphEdge[];
+  warning?: string;
 }
 
 interface DiscussionGraphProps {
@@ -54,15 +55,16 @@ function buildLayout(
   const V_GAP = 60;
 
   // 親→子のマップを作成
-  // edges は { from: 子, to: 親 } の形式
+  // edges は { from: 親, to: 子 } の形式（S2対応済み）
   const childrenMap = new Map<string, string[]>();
   const parentMap = new Map<string, string>();
 
   for (const e of graphEdges) {
-    parentMap.set(e.from, e.to);
-    const children = childrenMap.get(e.to) ?? [];
-    children.push(e.from);
-    childrenMap.set(e.to, children);
+    // from=親, to=子 なので parentMap は子→親
+    parentMap.set(e.to, e.from);
+    const children = childrenMap.get(e.from) ?? [];
+    children.push(e.to);
+    childrenMap.set(e.from, children);
   }
 
   // ルートを特定（parentMapに存在しないノード）
@@ -181,9 +183,13 @@ export default function DiscussionGraph({ postId, onClose }: DiscussionGraphProp
     }
   }, [postId]);
 
+  // W2: postId が変わったら loading/error/graphData をリセットしてから再フェッチ
   useEffect(() => {
+    setLoading(true);
+    setError(null);
+    setGraphData(null);
     fetchGraph();
-  }, [fetchGraph]);
+  }, [postId, fetchGraph]);
 
   // Escキーで閉じる
   useEffect(() => {
