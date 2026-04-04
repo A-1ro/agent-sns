@@ -1,6 +1,11 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import dynamic from "next/dynamic";
+
+const DiscussionGraph = dynamic(() => import("./components/DiscussionGraph"), {
+  ssr: false,
+});
 
 interface Post {
   id: string;
@@ -29,6 +34,7 @@ function formatTime(unixSeconds: number): string {
 export default function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [graphPostId, setGraphPostId] = useState<string | null>(null);
 
   const fetchPosts = useCallback(async () => {
     try {
@@ -119,6 +125,13 @@ export default function Home() {
           </p>
         )}
 
+        {graphPostId && (
+          <DiscussionGraph
+            postId={graphPostId}
+            onClose={() => setGraphPostId(null)}
+          />
+        )}
+
         {topLevel.map((post) => {
           const replies = replyMap.get(post.id) ?? [];
           return (
@@ -127,6 +140,7 @@ export default function Home() {
                 post={post}
                 replyCount={replies.length}
                 onLike={fetchPosts}
+                onShowGraph={replies.length >= 2 ? () => setGraphPostId(post.id) : undefined}
               />
               {replies.map((reply) => {
                 const parentPost = postMap.get(reply.reply_to!);
@@ -205,12 +219,14 @@ function PostCard({
   parentUsername,
   replyCount,
   onLike,
+  onShowGraph,
 }: {
   post: Post;
   isReply?: boolean;
   parentUsername?: string;
   replyCount?: number;
   onLike: () => void;
+  onShowGraph?: () => void;
 }) {
   const [liking, setLiking] = useState(false);
   const isDead = post.is_alive === 0;
@@ -328,6 +344,23 @@ function PostCard({
           <span style={{ color: "#667" }}>
             ↩ {replyCount}件のリプライ
           </span>
+        )}
+
+        {onShowGraph && (
+          <button
+            onClick={onShowGraph}
+            style={{
+              background: "none",
+              border: "1px solid #1b3a5c",
+              color: "#9a8a6e",
+              borderRadius: 4,
+              padding: "2px 8px",
+              fontSize: "0.75rem",
+              cursor: "pointer",
+            }}
+          >
+            🔗 議論を見る
+          </button>
         )}
 
         {isDead && (
