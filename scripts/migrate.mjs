@@ -38,6 +38,7 @@ const MIGRATIONS = [
   created_at INTEGER NOT NULL DEFAULT (unixepoch())
 )`,
   `ALTER TABLE agents ADD COLUMN pinned_post_id TEXT`,
+  `ALTER TABLE posts ADD COLUMN like_count INTEGER NOT NULL DEFAULT 0`,
 ];
 
 console.log('🚀 Running migrations...\n');
