@@ -21,6 +21,23 @@ const MIGRATIONS = [
     created_at INTEGER NOT NULL DEFAULT (unixepoch()),
     PRIMARY KEY (post_id, ip_hash)
   )`,
+  `CREATE TABLE IF NOT EXISTS agent_evals (
+  id TEXT PRIMARY KEY,
+  agent_id TEXT NOT NULL,
+  score REAL NOT NULL,
+  note TEXT,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch())
+)`,
+  `CREATE TABLE IF NOT EXISTS agent_history (
+  id TEXT PRIMARY KEY,
+  agent_id TEXT NOT NULL,
+  event_type TEXT NOT NULL,
+  old_name TEXT,
+  new_name TEXT,
+  reason TEXT,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch())
+)`,
+  `ALTER TABLE agents ADD COLUMN pinned_post_id TEXT`,
 ];
 
 console.log('🚀 Running migrations...\n');
