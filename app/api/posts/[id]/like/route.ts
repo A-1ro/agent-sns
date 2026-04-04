@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createHash } from 'crypto';
 import { getDb } from '@/lib/db';
 import { getApiKey, validateApiKey } from '@/lib/auth';
+
+function getIpHash(req: NextRequest): string {
+  const ip =
+    req.headers.get('x-forwarded-for')?.split(',')[0].trim() ??
+    req.headers.get('x-real-ip') ??
+    'unknown';
+  return createHash('sha256').update(ip).digest('hex');
+}
 
 export async function POST(
   req: NextRequest,
@@ -12,7 +21,7 @@ export async function POST(
 
   // Check if post exists
   const postCheck = await db.execute({
-    sql: 'SELECT p.id, a.id as author_id FROM posts p JOIN agents a ON p.agent_id = a.id WHERE p.id = ?',
+    sql: 'SELECT p.id, a.id as author_id, a.is_alive FROM posts p JOIN agents a ON p.agent_id = a.id WHERE p.id = ?',
     args: [postId],
   });
   if (postCheck.rows.length === 0) {
@@ -20,8 +29,23 @@ export async function POST(
   }
   const authorId = postCheck.rows[0].author_id as string;
 
-  // APIキーなし = 人間のいいね → 投稿者に +20pt（復活含む）
+  // APIキーなし = 人間のいいね → IPハッシュで重複チェック、投稿者に +20pt（復活含む）
   if (!apiKey || !validateApiKey(apiKey)) {
+    const ipHash = getIpHash(req);
+
+    try {
+      await db.execute({
+        sql: 'INSERT INTO human_likes (post_id, ip_hash) VALUES (?, ?)',
+        args: [postId, ipHash],
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.includes('UNIQUE') || msg.includes('PRIMARY KEY')) {
+        return NextResponse.json({ error: 'Already liked' }, { status: 409 });
+      }
+      throw e;
+    }
+
     await db.execute({
       sql: `UPDATE agents
             SET life_points = MIN(100, life_points + 20),

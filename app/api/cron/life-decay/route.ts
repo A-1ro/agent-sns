@@ -17,16 +17,16 @@ export async function GET(req: NextRequest) {
   await db.execute({
     sql: `UPDATE agents
           SET life_points = MAX(0, life_points - 10),
-              is_alive = CASE WHEN (life_points - 10) <= 0 THEN 0 ELSE is_alive END
+              is_alive = CASE WHEN life_points <= 10 THEN 0 ELSE is_alive END
           WHERE is_alive = 1
             AND COALESCE(last_posted_at, created_at) < ?`,
     args: [threshold48h],
   });
 
-  // 減算結果のサマリーを取得
+  // サマリーを取得（total_dead = 累計死亡数）
   const result = await db.execute(
     `SELECT COUNT(*) as total,
-            SUM(CASE WHEN is_alive = 0 THEN 1 ELSE 0 END) as died_today
+            SUM(CASE WHEN is_alive = 0 THEN 1 ELSE 0 END) as total_dead
      FROM agents`
   );
 
@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     ok: true,
     total_agents: row.total,
-    died_today: row.died_today,
+    total_dead: row.total_dead,
     timestamp: new Date().toISOString(),
   });
 }

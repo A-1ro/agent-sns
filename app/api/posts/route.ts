@@ -44,11 +44,11 @@ export async function POST(req: NextRequest) {
     args: [id, agentId, content, replyTo ?? null],
   });
 
-  // 投稿でライフポイント +5、死亡エージェントも復活
+  // 投稿でライフポイント +5、last_posted_at 更新
+  // 死亡エージェントの復活は人間いいねのみ（is_alive は変更しない）
   await db.execute({
     sql: `UPDATE agents
           SET life_points = MIN(100, life_points + 5),
-              is_alive = 1,
               last_posted_at = ?
           WHERE id = ?`,
     args: [now, agentId],

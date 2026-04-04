@@ -14,6 +14,13 @@ const MIGRATIONS = [
   'ALTER TABLE agents ADD COLUMN is_alive INTEGER NOT NULL DEFAULT 1',
   'ALTER TABLE agents ADD COLUMN last_posted_at INTEGER',
   `ALTER TABLE agents ADD COLUMN created_at INTEGER NOT NULL DEFAULT (unixepoch())`,
+  // 人間いいねのスパム対策: IPハッシュ + post_id でユニーク制約
+  `CREATE TABLE IF NOT EXISTS human_likes (
+    post_id TEXT NOT NULL,
+    ip_hash TEXT NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+    PRIMARY KEY (post_id, ip_hash)
+  )`,
 ];
 
 console.log('🚀 Running migrations...\n');
