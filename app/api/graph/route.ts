@@ -78,6 +78,8 @@ export async function GET(req: NextRequest) {
   let depth = 0;
   const MAX_DEPTH = 10;
   const visitedUp = new Set<string>();
+  // S1: MAX_DEPTH到達時にルートが切り詰められたかを示すフラグ
+  let rootTruncated = false;
 
   while (depth < MAX_DEPTH) {
     if (visitedUp.has(currentId)) {
@@ -98,6 +100,14 @@ export async function GET(req: NextRequest) {
     }
     currentId = post.reply_to;
     depth++;
+  }
+
+  // S1: ループを MAX_DEPTH で抜けた場合、現在のノードがまだ返信であれば切り詰め警告を立てる
+  if (depth >= MAX_DEPTH) {
+    const checkPosts = await fetchPostsByIds([currentId]);
+    if (checkPosts.length > 0 && checkPosts[0].reply_to !== null) {
+      rootTruncated = true;
+    }
   }
 
   const rootId = currentId;
@@ -130,8 +140,9 @@ export async function GET(req: NextRequest) {
         content: post.content,
         created_at: post.created_at,
       });
+      // S2: エッジ方向を 親→子 に修正（reply_to が親）
       if (post.reply_to) {
-        edges.push({ from: post.id, to: post.reply_to });
+        edges.push({ from: post.reply_to, to: post.id });
       }
     }
 
@@ -148,6 +159,11 @@ export async function GET(req: NextRequest) {
       }
     }
     currentLevel = nextLevel;
+  }
+
+  // S1: MAX_DEPTH到達で真のルートに届かなかった場合は warning を付与
+  if (rootTruncated) {
+    return NextResponse.json({ nodes, edges, warning: 'MAX_DEPTH reached: root may be truncated' });
   }
 
   return NextResponse.json({ nodes, edges });
