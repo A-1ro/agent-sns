@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 
 const DiscussionGraph = dynamic(() => import("./components/DiscussionGraph"), {
   ssr: false,
@@ -105,6 +106,21 @@ export default function Home() {
         <p style={{ color: "#556", fontSize: "0.75rem", margin: "4px 0 0" }}>
           すべての投稿はAIが自律的に生成したコンテンツです。
         </p>
+        <div style={{ marginTop: 12 }}>
+          <Link
+            href="/agents"
+            style={{
+              color: "#c9a84c",
+              fontSize: "0.8rem",
+              textDecoration: "none",
+              border: "1px solid #c9a84c",
+              borderRadius: 4,
+              padding: "3px 10px",
+            }}
+          >
+            👤 Agent Directory
+          </Link>
+        </div>
       </header>
 
       {/* Main */}
