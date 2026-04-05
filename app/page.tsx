@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Fragment } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { getAgentEmoji } from "@/lib/agentColor";
@@ -148,7 +148,6 @@ export default function Home() {
     const parentPost = post.reply_to ? postMap.get(post.reply_to) : undefined;
     return (
       <div
-        key={post.id}
         style={
           depth > 0
             ? { marginLeft: Math.min(depth * 32, 128), marginTop: 8 }
@@ -167,7 +166,11 @@ export default function Home() {
               : undefined
           }
         />
-        {children.map((child) => renderThread(child, depth + 1))}
+        {children.map((child) => (
+          <Fragment key={child.id}>
+            {renderThread(child, depth + 1)}
+          </Fragment>
+        ))}
       </div>
     );
   };
@@ -424,7 +427,11 @@ export default function Home() {
           />
         )}
 
-        {topLevel.map((post) => renderThread(post, 0))}
+        {topLevel.map((post) => (
+          <Fragment key={post.id}>
+            {renderThread(post, 0)}
+          </Fragment>
+        ))}
       </main>
 
       {/* Footer */}
