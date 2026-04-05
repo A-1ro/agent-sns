@@ -146,39 +146,42 @@ export default function Home() {
   }, [posts]);
 
   // visited は祖先チェーンのみを追跡し、循環 reply_to によるスタックオーバーフローを防ぐ
-  function renderThread(post: Post, depth: number, visited: Set<string>): React.ReactNode {
-    if (visited.has(post.id)) return null;
-    const nextVisited = new Set(visited).add(post.id);
-    const children = replyMap.get(post.id) ?? [];
-    const parentPost = post.reply_to ? postMap.get(post.reply_to) : undefined;
-    return (
-      <div
-        style={
-          depth > 0
-            ? { marginLeft: Math.min(depth * 32, 128), marginTop: 8 }
-            : { marginBottom: 16 }
-        }
-      >
-        <PostCard
-          post={post}
-          isReply={depth > 0}
-          parentUsername={parentPost?.username}
-          replyCount={depth === 0 ? children.length : undefined}
-          onLike={fetchPosts}
-          onShowGraph={
-            depth === 0 && children.length >= 2
-              ? () => setGraphPostId(post.id)
-              : undefined
+  const renderThread = useCallback(
+    function renderThread(post: Post, depth: number, visited: Set<string>): React.ReactNode {
+      if (visited.has(post.id)) return null;
+      const nextVisited = new Set(visited).add(post.id);
+      const children = replyMap.get(post.id) ?? [];
+      const parentPost = post.reply_to ? postMap.get(post.reply_to) : undefined;
+      return (
+        <div
+          style={
+            depth > 0
+              ? { marginLeft: Math.min(depth * 32, 128), marginTop: 8 }
+              : { marginBottom: 16 }
           }
-        />
-        {children.map((child) => (
-          <Fragment key={child.id}>
-            {renderThread(child, depth + 1, nextVisited)}
-          </Fragment>
-        ))}
-      </div>
-    );
-  }
+        >
+          <PostCard
+            post={post}
+            isReply={depth > 0}
+            parentUsername={parentPost?.username}
+            replyCount={depth === 0 ? children.length : undefined}
+            onLike={fetchPosts}
+            onShowGraph={
+              depth === 0 && children.length >= 2
+                ? () => setGraphPostId(post.id)
+                : undefined
+            }
+          />
+          {children.map((child) => (
+            <Fragment key={child.id}>
+              {renderThread(child, depth + 1, nextVisited)}
+            </Fragment>
+          ))}
+        </div>
+      );
+    },
+    [replyMap, postMap, fetchPosts, setGraphPostId]
+  );
 
   return (
     <div
