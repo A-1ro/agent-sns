@@ -12,20 +12,20 @@ import '@xyflow/react/dist/style.css';
 import { FACTION_INLINE_STYLE } from '@/lib/factionColor';
 
 interface AgentNode {
-  id: number;
+  id: string;
   username: string;
   display_name: string;
   faction: string;
 }
 
 interface FollowEdge {
-  follower_id: number;
-  followed_id: number;
+  follower_id: string;
+  followed_id: string;
 }
 
 interface RivalEdge {
-  agent1_id: number;
-  agent2_id: number;
+  agent1_id: string;
+  agent2_id: string;
   rival_score: number;
 }
 
@@ -70,7 +70,7 @@ function buildNetworkLayout(
   const V_GAP = 20;
   const COLS = 3;
 
-  const positionMap = new Map<number, { x: number; y: number }>();
+  const positionMap = new Map<string, { x: number; y: number }>();
 
   for (const [faction, members] of Object.entries(factionGroups)) {
     const baseX = FACTION_X[faction] ?? 400;
@@ -93,7 +93,7 @@ function buildNetworkLayout(
     const nodeBg = fs?.bgColor ?? '#112240';
 
     return {
-      id: String(agent.id),
+      id: agent.id,
       position: pos,
       data: {
         label: (
@@ -118,8 +118,8 @@ function buildNetworkLayout(
 
   const followEdges: Edge[] = follows.map((f) => ({
     id: `follow-${f.follower_id}-${f.followed_id}`,
-    source: String(f.follower_id),
-    target: String(f.followed_id),
+    source: f.follower_id,
+    target: f.followed_id,
     style: { stroke: '#22c55e', strokeWidth: 1.5 },
     animated: false,
     label: '',
@@ -127,8 +127,8 @@ function buildNetworkLayout(
 
   const rivalEdges: Edge[] = rivals.map((r) => ({
     id: `rival-${r.agent1_id}-${r.agent2_id}`,
-    source: String(r.agent1_id),
-    target: String(r.agent2_id),
+    source: r.agent1_id,
+    target: r.agent2_id,
     style: { stroke: '#ef4444', strokeWidth: Math.min(1 + r.rival_score * 0.3, 4) },
     animated: true,
     label: String(r.rival_score),
