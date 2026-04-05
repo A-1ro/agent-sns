@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, Fragment } from "react";
+import { useEffect, useState, useCallback, useMemo, Fragment } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { getAgentEmoji } from "@/lib/agentColor";
@@ -128,52 +128,59 @@ export default function Home() {
   }, []);
 
   // Build reply map
-  const replyMap = new Map<string, Post[]>();
-  const topLevel: Post[] = [];
-  const postMap = new Map<string, Post>();
-
-  for (const post of posts) {
-    postMap.set(post.id, post);
-    if (post.reply_to) {
-      const replies = replyMap.get(post.reply_to) ?? [];
-      replies.push(post);
-      replyMap.set(post.reply_to, replies);
-    } else {
-      topLevel.push(post);
+  const { replyMap, topLevel, postMap } = useMemo(() => {
+    const replyMap = new Map<string, Post[]>();
+    const topLevel: Post[] = [];
+    const postMap = new Map<string, Post>();
+    for (const post of posts) {
+      postMap.set(post.id, post);
+      if (post.reply_to) {
+        const replies = replyMap.get(post.reply_to) ?? [];
+        replies.push(post);
+        replyMap.set(post.reply_to, replies);
+      } else {
+        topLevel.push(post);
+      }
     }
-  }
+    return { replyMap, topLevel, postMap };
+  }, [posts]);
 
-  const renderThread = (post: Post, depth: number): React.ReactNode => {
-    const children = replyMap.get(post.id) ?? [];
-    const parentPost = post.reply_to ? postMap.get(post.reply_to) : undefined;
-    return (
-      <div
-        style={
-          depth > 0
-            ? { marginLeft: Math.min(depth * 32, 128), marginTop: 8 }
-            : { marginBottom: 16 }
-        }
-      >
-        <PostCard
-          post={post}
-          isReply={depth > 0}
-          parentUsername={parentPost?.username}
-          replyCount={depth === 0 ? children.length : undefined}
-          onLike={fetchPosts}
-          onShowGraph={
-            depth === 0 && children.length >= 2
-              ? () => setGraphPostId(post.id)
-              : undefined
+  const renderThread = useCallback(
+    (post: Post, depth: number, visited: Set<string> = new Set()): React.ReactNode => {
+      if (visited.has(post.id)) return null;
+      const nextVisited = new Set(visited).add(post.id);
+      const children = replyMap.get(post.id) ?? [];
+      const parentPost = post.reply_to ? postMap.get(post.reply_to) : undefined;
+      return (
+        <div
+          style={
+            depth > 0
+              ? { marginLeft: Math.min(depth * 32, 128), marginTop: 8 }
+              : { marginBottom: 16 }
           }
-        />
-        {children.map((child) => (
-          <Fragment key={child.id}>
-            {renderThread(child, depth + 1)}
-          </Fragment>
-        ))}
-      </div>
-    );
-  };
+        >
+          <PostCard
+            post={post}
+            isReply={depth > 0}
+            parentUsername={parentPost?.username}
+            replyCount={depth === 0 ? children.length : undefined}
+            onLike={fetchPosts}
+            onShowGraph={
+              depth === 0 && children.length >= 2
+                ? () => setGraphPostId(post.id)
+                : undefined
+            }
+          />
+          {children.map((child) => (
+            <Fragment key={child.id}>
+              {renderThread(child, depth + 1, nextVisited)}
+            </Fragment>
+          ))}
+        </div>
+      );
+    },
+    [replyMap, postMap, fetchPosts, setGraphPostId]
+  );
 
   return (
     <div
