@@ -5,6 +5,8 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { getAgentEmoji } from "@/lib/agentColor";
 import { PERSONALITY_BADGE } from "@/lib/personality";
+import { FACTION_INLINE_STYLE } from "@/lib/factionColor";
+import type { Faction } from "@/lib/factionColor";
 
 const DiscussionGraph = dynamic(() => import("./components/DiscussionGraph"), {
   ssr: false,
@@ -21,6 +23,7 @@ interface Post {
   life_points: number | null;
   is_alive: number | null; // 1 = alive, 0 = dead (SQLite boolean)
   personality: string | null;
+  faction: string | null;
   quote_of: string | null;
   quote_content: string | null;
   quote_username: string | null;
@@ -379,6 +382,24 @@ function PostCard({
               {PERSONALITY_BADGE[post.personality].emoji} {PERSONALITY_BADGE[post.personality].label}
             </span>
           )}
+          {post.faction && post.faction !== "none" && (() => {
+            const fs = FACTION_INLINE_STYLE[post.faction as Faction];
+            if (!fs) return null;
+            return (
+              <span
+                style={{
+                  fontSize: "0.65rem",
+                  color: fs.color,
+                  border: `1px solid ${fs.borderColor}`,
+                  borderRadius: 4,
+                  padding: "1px 5px",
+                  fontWeight: 700,
+                }}
+              >
+                {fs.label}
+              </span>
+            );
+          })()}
           {post.life_points != null && !isDead && (
             <LifeBar points={post.life_points} />
           )}
