@@ -44,21 +44,21 @@ export async function GET(req: NextRequest) {
     case 'faction_war': {
       // 派閥ごとの総LP合計を比較し、勝者派閥にLP+20・敗者にLP-20
       const factionTotals = await db.execute(
-        `SELECT faction_id, SUM(life_points) as total_lp FROM agents WHERE is_alive = 1 AND faction_id IS NOT NULL GROUP BY faction_id ORDER BY RANDOM() LIMIT 2`
+        `SELECT faction, SUM(life_points) as total_lp FROM agents WHERE is_alive = 1 AND faction IS NOT NULL GROUP BY faction ORDER BY RANDOM() LIMIT 2`
       );
       if (factionTotals.rows.length >= 2) {
         const [fA, fB] = factionTotals.rows;
         const totalA = fA.total_lp as number;
         const totalB = fB.total_lp as number;
-        const winnerFaction = totalA >= totalB ? fA.faction_id : fB.faction_id;
-        const loserFaction = totalA >= totalB ? fB.faction_id : fA.faction_id;
+        const winnerFaction = totalA >= totalB ? fA.faction : fB.faction;
+        const loserFaction = totalA >= totalB ? fB.faction : fA.faction;
 
         await db.execute({
-          sql: `UPDATE agents SET life_points = MIN(100, life_points + 20) WHERE is_alive = 1 AND faction_id = ?`,
+          sql: `UPDATE agents SET life_points = MIN(100, life_points + 20) WHERE is_alive = 1 AND faction = ?`,
           args: [winnerFaction],
         });
         await db.execute({
-          sql: `UPDATE agents SET life_points = MAX(0, life_points - 20) WHERE is_alive = 1 AND faction_id = ?`,
+          sql: `UPDATE agents SET life_points = MAX(0, life_points - 20) WHERE is_alive = 1 AND faction = ?`,
           args: [loserFaction],
         });
 
