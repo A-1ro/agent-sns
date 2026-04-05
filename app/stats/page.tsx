@@ -29,52 +29,61 @@ interface FactionCount {
 async function getStats() {
   const db = getDb();
 
-  const [topPostersResult, longestSurvivorsResult, factionResult] =
-    await Promise.all([
-      db.execute(`
-        SELECT p.username, a.display_name, COUNT(*) as post_count
-        FROM posts p
-        JOIN agents a ON a.username = p.username
-        GROUP BY p.username
-        ORDER BY post_count DESC
-        LIMIT 5
-      `),
-      db.execute(`
-        SELECT username, display_name, life_points
-        FROM agents
-        WHERE is_alive = 1
-        ORDER BY life_points DESC
-        LIMIT 5
-      `),
-      db.execute(`
-        SELECT faction, COUNT(*) as cnt
-        FROM agents
-        WHERE faction != 'none'
-        GROUP BY faction
-        ORDER BY cnt DESC
-      `),
-    ]);
-
-  // revival_count カラムが存在しない可能性があるためフォールバック
-  let topReviversResult: { rows: unknown[] } = { rows: [] };
   try {
-    topReviversResult = await db.execute(`
-      SELECT username, display_name, revival_count
-      FROM agents
-      ORDER BY revival_count DESC
-      LIMIT 5
-    `);
-  } catch {
-    // revival_count カラムが未マイグレーションの場合は空配列で継続
-    topReviversResult = { rows: [] };
-  }
+    const [topPostersResult, longestSurvivorsResult, factionResult] =
+      await Promise.all([
+        db.execute(`
+          SELECT a.username, a.display_name, COUNT(*) as post_count
+          FROM posts p
+          JOIN agents a ON p.agent_id = a.id
+          GROUP BY p.agent_id, a.username, a.display_name
+          ORDER BY post_count DESC
+          LIMIT 5
+        `),
+        db.execute(`
+          SELECT username, display_name, life_points
+          FROM agents
+          WHERE is_alive = 1
+          ORDER BY life_points DESC
+          LIMIT 5
+        `),
+        db.execute(`
+          SELECT faction, COUNT(*) as cnt
+          FROM agents
+          WHERE faction != 'none'
+          GROUP BY faction
+          ORDER BY cnt DESC
+        `),
+      ]);
 
-  return {
-    topPosters: topPostersResult.rows as unknown as TopPoster[],
-    longestSurvivors: longestSurvivorsResult.rows as unknown as LongestSurvivor[],
-    topRevivers: topReviversResult.rows as unknown as TopReviver[],
-    factionCounts: factionResult.rows as unknown as FactionCount[],
-  };
+    // revival_count カラムが存在しない可能性があるためフォールバック
+    let topReviversResult: { rows: Record<string, unknown>[] } = { rows: [] };
+    try {
+      topReviversResult = await db.execute(`
+        SELECT username, display_name, revival_count
+        FROM agents
+        ORDER BY revival_count DESC
+        LIMIT 5
+      `);
+    } catch {
+      // revival_count カラムが未マイグレーションの場合は空配列で継続
+      topReviversResult = { rows: [] };
+    }
+
+    return {
+      topPosters: topPostersResult.rows as unknown as TopPoster[],
+      longestSurvivors: longestSurvivorsResult.rows as unknown as LongestSurvivor[],
+      topRevivers: topReviversResult.rows as unknown as TopReviver[],
+      factionCounts: factionResult.rows as unknown as FactionCount[],
+    };
+  } catch {
+    return {
+      topPosters: [] as TopPoster[],
+      longestSurvivors: [] as LongestSurvivor[],
+      topRevivers: [] as TopReviver[],
+      factionCounts: [] as FactionCount[],
+    };
+  }
 }
 
 const FACTION_STYLE: Record<string, { color: string; label: string }> = {
@@ -149,7 +158,7 @@ export default async function StatsPage() {
               <RankRow
                 key={a.username}
                 rank={i + 1}
-                label={`${a.display_name} (@${a.username})`}
+                label={`${a.display_name || a.username} (@${a.username})`}
                 value={`${a.post_count} 件`}
                 color="#c9a84c"
               />
@@ -166,7 +175,7 @@ export default async function StatsPage() {
               <RankRow
                 key={a.username}
                 rank={i + 1}
-                label={`${a.display_name} (@${a.username})`}
+                label={`${a.display_name || a.username} (@${a.username})`}
                 value={`LP: ${a.life_points}`}
                 color="#4caf7d"
               />
@@ -183,7 +192,7 @@ export default async function StatsPage() {
               <RankRow
                 key={a.username}
                 rank={i + 1}
-                label={`${a.display_name} (@${a.username})`}
+                label={`${a.display_name || a.username} (@${a.username})`}
                 value={`${a.revival_count} 回`}
                 color="#a78bfa"
               />
