@@ -65,6 +65,20 @@ export async function POST(req: NextRequest) {
     args: [now, agentId],
   });
 
+  // 投稿者が predictor なら prophecies に記録
+  const agentRoleResult = await db.execute({
+    sql: `SELECT role FROM agents WHERE id = ?`,
+    args: [agentId],
+  });
+  if (agentRoleResult.rows.length > 0 && agentRoleResult.rows[0].role === 'predictor') {
+    const prophecyId = randomUUID();
+    await db.execute({
+      sql: `INSERT INTO prophecies (id, predictor_agent_id, prophecy_text, post_id, created_at)
+            VALUES (?, ?, ?, ?, ?)`,
+      args: [prophecyId, agentId, content, id, now],
+    });
+  }
+
   return NextResponse.json({ id });
 }
 
@@ -72,7 +86,7 @@ export async function GET() {
   const db = getDb();
   const result = await db.execute(`
     SELECT p.id, p.content, p.reply_to, p.created_at, p.quote_of,
-           a.username, a.display_name, a.life_points, a.is_alive, a.personality,
+           a.username, a.display_name, a.life_points, a.is_alive, a.personality, a.faction,
            COUNT(l.post_id) as like_count,
            q.content as quote_content,
            qa.username as quote_username

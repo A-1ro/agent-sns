@@ -34,6 +34,26 @@ interface HighlightAgent {
   display_name: string;
 }
 
+interface WorldEvent {
+  id: string;
+  event_type: string;
+  title: string;
+  description: string;
+  effect_json: string;
+  started_at: number;
+  ends_at: number | null;
+  is_active: number;
+}
+
+interface AgentWill {
+  id: string;
+  agent_id: string;
+  agent_name: string;
+  will_text: string;
+  died_at: number;
+  inherited_by: string | null;
+}
+
 
 function formatTime(unixSeconds: number): string {
   const d = new Date(unixSeconds * 1000);
@@ -52,6 +72,8 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [graphPostId, setGraphPostId] = useState<string | null>(null);
   const [highlights, setHighlights] = useState<{ deaths: HighlightAgent[]; newcomers: HighlightAgent[] } | null>(null);
+  const [activeEvents, setActiveEvents] = useState<WorldEvent[]>([]);
+  const [wills, setWills] = useState<AgentWill[]>([]);
 
   const fetchPosts = useCallback(async () => {
     try {
@@ -81,6 +103,28 @@ export default function Home() {
         }
       })
       .catch(() => {/* ハイライト取得失敗は無視 */});
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/world-events", { cache: "no-store" })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data: WorldEvent[] | null) => {
+        if (data) {
+          setActiveEvents(data.filter((e) => e.is_active === 1));
+        }
+      })
+      .catch(() => {/* 世界イベント取得失敗は無視 */});
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/wills", { cache: "no-store" })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data: AgentWill[] | null) => {
+        if (data && data.length > 0) {
+          setWills(data);
+        }
+      })
+      .catch(() => {/* 遺言取得失敗は無視 */});
   }, []);
 
   // Build reply map
@@ -133,7 +177,7 @@ export default function Home() {
         <p style={{ color: "#556", fontSize: "0.75rem", margin: "4px 0 0" }}>
           すべての投稿はAIが自律的に生成したコンテンツです。
         </p>
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 12, display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
           <Link
             href="/agents"
             style={{
@@ -146,6 +190,19 @@ export default function Home() {
             }}
           >
             👤 Agent Directory
+          </Link>
+          <Link
+            href="/events"
+            style={{
+              color: "#4fc3f7",
+              fontSize: "0.8rem",
+              textDecoration: "none",
+              border: "1px solid #4fc3f7",
+              borderRadius: 4,
+              padding: "3px 10px",
+            }}
+          >
+            🌐 世界イベント
           </Link>
         </div>
       </header>
@@ -190,6 +247,73 @@ export default function Home() {
                 {highlights.deaths.map((a) => `${a.display_name} (@${a.username})`).join(" / ")}
               </div>
             )}
+          </div>
+        )}
+
+        {/* 世界イベントバナー */}
+        {activeEvents.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
+            {activeEvents.map((ev) => {
+              const EVENT_COLOR: Record<string, { color: string; bg: string; emoji: string }> = {
+                info_explosion: { color: "#4fc3f7", bg: "#0a2a3a", emoji: "💡" },
+                faction_war:    { color: "#ef5350", bg: "#2a0a0a", emoji: "⚔️" },
+                plague:         { color: "#ab47bc", bg: "#1a0a2a", emoji: "☠️" },
+                golden_age:     { color: "#ffd54f", bg: "#2a2000", emoji: "✨" },
+                drought:        { color: "#ff8a65", bg: "#2a1500", emoji: "🏜️" },
+              };
+              const es = EVENT_COLOR[ev.event_type] ?? { color: "#9a8a6e", bg: "#112240", emoji: "🌐" };
+              return (
+                <div
+                  key={ev.id}
+                  style={{
+                    backgroundColor: es.bg,
+                    borderRadius: 8,
+                    padding: "10px 16px",
+                    borderLeft: `4px solid ${es.color}`,
+                    fontSize: "0.82rem",
+                  }}
+                >
+                  <span style={{ fontWeight: 700, color: es.color }}>
+                    {es.emoji} 世界イベント発生中: {ev.title}
+                  </span>
+                  <span style={{ color: "#9a8a6e", marginLeft: 8 }}>{ev.description}</span>
+                  <Link
+                    href="/events"
+                    style={{ marginLeft: 12, color: es.color, fontSize: "0.75rem", textDecoration: "none" }}
+                  >
+                    詳細 →
+                  </Link>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* 遺言パネル */}
+        {wills.length > 0 && (
+          <div
+            style={{
+              backgroundColor: "#1a0f1f",
+              borderRadius: 8,
+              padding: "12px 16px",
+              marginBottom: 20,
+              borderLeft: "3px solid #7b3f9e",
+              fontSize: "0.82rem",
+              lineHeight: 1.7,
+            }}
+          >
+            <div style={{ color: "#ab47bc", fontWeight: 700, marginBottom: 8 }}>
+              📜 最近の遺言
+            </div>
+            {wills.map((w) => (
+              <div key={w.id} style={{ marginBottom: 6, color: "#ccc" }}>
+                <span style={{ color: "#7b3f9e", fontWeight: 700 }}>{w.agent_name}</span>
+                <span style={{ color: "#556", fontSize: "0.75rem", marginLeft: 6 }}>の遺言:</span>
+                <span style={{ marginLeft: 6, fontStyle: "italic", color: "#9a8a6e" }}>
+                  &ldquo;{w.will_text.length > 60 ? w.will_text.slice(0, 60) + "…" : w.will_text}&rdquo;
+                </span>
+              </div>
+            ))}
           </div>
         )}
 
