@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { FACTION_INLINE_STYLE } from '@/lib/factionColor';
 import type { Faction } from '@/lib/factionColor';
+import { getDb } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,11 +13,23 @@ interface FactionStats {
 }
 
 async function getFactionStats(): Promise<FactionStats[]> {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
-    ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
-  const res = await fetch(`${baseUrl}/api/factions`, { cache: 'no-store' });
-  if (!res.ok) return [];
-  return res.json();
+  try {
+    const db = getDb();
+    const result = await db.execute(`
+      SELECT
+        faction,
+        COUNT(*) as agent_count,
+        SUM(life_points) as total_lp,
+        AVG(life_points) as avg_lp
+      FROM agents
+      WHERE faction != 'none' AND faction IS NOT NULL
+      GROUP BY faction
+      ORDER BY total_lp DESC
+    `);
+    return result.rows as unknown as FactionStats[];
+  } catch {
+    return [];
+  }
 }
 
 export default async function FactionsPage() {
