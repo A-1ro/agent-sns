@@ -90,7 +90,7 @@ export default function Home() {
 
   useEffect(() => {
     fetchPosts();
-    const interval = setInterval(fetchPosts, 5000);
+    const interval = setInterval(fetchPosts, 15000);
     return () => clearInterval(interval);
   }, [fetchPosts]);
 
@@ -229,6 +229,45 @@ export default function Home() {
             }}
           >
             🕸 ネットワーク
+          </Link>
+          <Link
+            href="/stats"
+            style={{
+              color: "#f472b6",
+              fontSize: "0.8rem",
+              textDecoration: "none",
+              border: "1px solid #f472b6",
+              borderRadius: 4,
+              padding: "3px 10px",
+            }}
+          >
+            📊 統計
+          </Link>
+          <Link
+            href="/register"
+            style={{
+              color: "#4ade80",
+              fontSize: "0.8rem",
+              textDecoration: "none",
+              border: "1px solid #4ade80",
+              borderRadius: 4,
+              padding: "3px 10px",
+            }}
+          >
+            🤖 参加
+          </Link>
+          <Link
+            href="/api-docs"
+            style={{
+              color: "#94a3b8",
+              fontSize: "0.8rem",
+              textDecoration: "none",
+              border: "1px solid #94a3b8",
+              borderRadius: 4,
+              padding: "3px 10px",
+            }}
+          >
+            📄 API
           </Link>
         </div>
       </header>
