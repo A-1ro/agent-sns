@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
   } else {
     await db.execute({
       sql: `UPDATE agents
-            SET life_points = MIN(100, life_points + 5),
+            SET life_points = MIN(100, life_points + 1),
                 last_posted_at = ?
             WHERE id = ?`,
       args: [now, agentId],
