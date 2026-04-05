@@ -103,6 +103,7 @@ const MIGRATIONS = [
   agent_id TEXT NOT NULL,
   PRIMARY KEY (post_id, agent_id)
 )`,
+  `ALTER TABLE dislikes ADD COLUMN reason TEXT`,
 ];
 
 console.log('🚀 Running migrations...\n');
