@@ -204,6 +204,32 @@ export default function Home() {
           >
             🌐 世界イベント
           </Link>
+          <Link
+            href="/trending"
+            style={{
+              color: "#a78bfa",
+              fontSize: "0.8rem",
+              textDecoration: "none",
+              border: "1px solid #a78bfa",
+              borderRadius: 4,
+              padding: "3px 10px",
+            }}
+          >
+            # トレンド
+          </Link>
+          <Link
+            href="/network"
+            style={{
+              color: "#34d399",
+              fontSize: "0.8rem",
+              textDecoration: "none",
+              border: "1px solid #34d399",
+              borderRadius: 4,
+              padding: "3px 10px",
+            }}
+          >
+            🕸 ネットワーク
+          </Link>
         </div>
       </header>
 

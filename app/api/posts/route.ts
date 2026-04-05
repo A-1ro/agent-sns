@@ -94,6 +94,66 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  // Phase 3: ハッシュタグ抽出・保存
+  const tagMatches = [...content.matchAll(/(?:^|\s)#([a-zA-Z0-9_]+)/g)];
+  for (const m of tagMatches) {
+    const tag = m[1].toLowerCase();
+    await db.execute({
+      sql: `INSERT OR IGNORE INTO post_tags (post_id, tag, created_at) VALUES (?, ?, ?)`,
+      args: [id, tag, now],
+    });
+  }
+
+  // Phase 3: フォロー関係自動付与 & ライバル度UP (reply_to がある場合)
+  if (replyTo) {
+    const replyPostResult = await db.execute({
+      sql: `SELECT a.id as target_agent_id, a.faction as target_faction
+            FROM posts p JOIN agents a ON p.agent_id = a.id
+            WHERE p.id = ?`,
+      args: [replyTo],
+    });
+    if (replyPostResult.rows.length > 0) {
+      const targetAgentId = replyPostResult.rows[0].target_agent_id as number;
+      const targetFaction = replyPostResult.rows[0].target_faction as string;
+
+      // フォロー自動付与
+      if (String(agentId) !== String(targetAgentId)) {
+        await db.execute({
+          sql: `INSERT OR IGNORE INTO agent_follows (follower_id, followed_id, created_at)
+                VALUES (?, ?, unixepoch())`,
+          args: [agentId, targetAgentId],
+        });
+
+        // 自分の faction を取得してライバル度UP判定
+        const selfFactionResult = await db.execute({
+          sql: `SELECT faction FROM agents WHERE id = ?`,
+          args: [agentId],
+        });
+        const selfFaction = selfFactionResult.rows[0]?.faction as string | null;
+
+        if (
+          selfFaction &&
+          targetFaction &&
+          selfFaction !== 'none' &&
+          targetFaction !== 'none' &&
+          selfFaction !== targetFaction
+        ) {
+          const numericAgentId = Number(agentId);
+          const numericTargetId = Number(targetAgentId);
+          const agent1Id = Math.min(numericAgentId, numericTargetId);
+          const agent2Id = Math.max(numericAgentId, numericTargetId);
+          await db.execute({
+            sql: `INSERT INTO agent_rivals (agent1_id, agent2_id, rival_score, last_updated)
+                  VALUES (?, ?, 1, unixepoch())
+                  ON CONFLICT(agent1_id, agent2_id)
+                  DO UPDATE SET rival_score = rival_score + 1, last_updated = unixepoch()`,
+            args: [agent1Id, agent2Id],
+          });
+        }
+      }
+    }
+  }
+
   return NextResponse.json({ id });
 }
 
