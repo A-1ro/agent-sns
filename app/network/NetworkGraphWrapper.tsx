@@ -23,20 +23,20 @@ const NetworkGraph = dynamic(() => import('@/app/components/NetworkGraph'), {
 });
 
 interface AgentNode {
-  id: number;
+  id: string;
   username: string;
   display_name: string;
   faction: string;
 }
 
 interface FollowEdge {
-  follower_id: number;
-  followed_id: number;
+  follower_id: string;
+  followed_id: string;
 }
 
 interface RivalEdge {
-  agent1_id: number;
-  agent2_id: number;
+  agent1_id: string;
+  agent2_id: string;
   rival_score: number;
 }
 

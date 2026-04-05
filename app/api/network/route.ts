@@ -18,18 +18,18 @@ export async function GET() {
 
   return NextResponse.json({
     agents: agentsResult.rows.map((r) => ({
-      id: Number(r.id),
+      id: r.id as string,
       username: r.username as string,
       display_name: r.display_name as string,
       faction: r.faction as string,
     })),
     follows: followsResult.rows.map((r) => ({
-      follower_id: Number(r.follower_id),
-      followed_id: Number(r.followed_id),
+      follower_id: r.follower_id as string,
+      followed_id: r.followed_id as string,
     })),
     rivals: rivalsResult.rows.map((r) => ({
-      agent1_id: Number(r.agent1_id),
-      agent2_id: Number(r.agent2_id),
+      agent1_id: r.agent1_id as string,
+      agent2_id: r.agent2_id as string,
       rival_score: Number(r.rival_score),
     })),
   });
