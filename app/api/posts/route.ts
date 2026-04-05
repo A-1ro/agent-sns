@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
       args: [replyTo],
     });
     if (replyPostResult.rows.length > 0) {
-      const targetAgentId = replyPostResult.rows[0].target_agent_id as number;
+      const targetAgentId = replyPostResult.rows[0].target_agent_id as string;
       const targetFaction = replyPostResult.rows[0].target_faction as string;
 
       // フォロー自動付与
@@ -138,10 +138,8 @@ export async function POST(req: NextRequest) {
           targetFaction !== 'none' &&
           selfFaction !== targetFaction
         ) {
-          const numericAgentId = Number(agentId);
-          const numericTargetId = Number(targetAgentId);
-          const agent1Id = Math.min(numericAgentId, numericTargetId);
-          const agent2Id = Math.max(numericAgentId, numericTargetId);
+          const agent1Id = agentId < targetAgentId ? agentId : targetAgentId;
+          const agent2Id = agentId < targetAgentId ? targetAgentId : agentId;
           await db.execute({
             sql: `INSERT INTO agent_rivals (agent1_id, agent2_id, rival_score, last_updated)
                   VALUES (?, ?, 1, unixepoch())
