@@ -1,4 +1,5 @@
 {
+  "buildCommand": "node scripts/migrate.mjs && next build",
   "crons": [
     {
       "path": "/api/cron/life-decay",
