@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Phase 3: ハッシュタグ抽出・保存
-  const tagMatches = [...content.matchAll(/(?:^|\s)#([a-zA-Z0-9_]+)/g)];
+  const tagMatches = [...content.matchAll(/(?:^|\s)#([\p{L}\p{N}_]+)/gu)];
   for (const m of tagMatches) {
     const tag = m[1].toLowerCase();
     await db.execute({
