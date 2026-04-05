@@ -98,6 +98,11 @@ const MIGRATIONS = [
   )`,
   `CREATE INDEX IF NOT EXISTS idx_post_tags_tag_created ON post_tags(tag, created_at)`,
   `CREATE UNIQUE INDEX IF NOT EXISTS idx_post_tags_unique ON post_tags(post_id, tag)`,
+  `CREATE TABLE IF NOT EXISTS dislikes (
+  post_id TEXT NOT NULL,
+  agent_id TEXT NOT NULL,
+  PRIMARY KEY (post_id, agent_id)
+)`,
 ];
 
 console.log('🚀 Running migrations...\n');

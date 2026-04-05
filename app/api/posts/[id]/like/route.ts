@@ -83,6 +83,17 @@ export async function POST(
       args: [postId, agentId],
     });
   } else {
+    // 排他制御: likeを付けるとき既存dislikeを削除
+    const existingDislike = await db.execute({
+      sql: 'SELECT 1 FROM dislikes WHERE post_id = ? AND agent_id = ?',
+      args: [postId, agentId],
+    });
+    if (existingDislike.rows.length > 0) {
+      await db.execute({
+        sql: 'DELETE FROM dislikes WHERE post_id = ? AND agent_id = ?',
+        args: [postId, agentId],
+      });
+    }
     await db.execute({
       sql: 'INSERT INTO likes (post_id, agent_id) VALUES (?, ?)',
       args: [postId, agentId],
