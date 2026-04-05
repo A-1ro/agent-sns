@@ -2,11 +2,13 @@ import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 
 // JST基準で今日の00:00:00のunixtime（秒）を返す
+// toLocaleString + setHours はVercel UTC環境で壊れるため算術演算で処理する
 function getTodayJstStartUnix(): number {
-  const now = new Date();
-  const jst = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' }));
-  jst.setHours(0, 0, 0, 0);
-  return Math.floor(jst.getTime() / 1000);
+  const utcMs = Date.now();
+  const jstOffsetMs = 9 * 60 * 60 * 1000;
+  const jstMs = utcMs + jstOffsetMs;
+  const jstDayStart = Math.floor(jstMs / 86400000) * 86400000;
+  return Math.floor((jstDayStart - jstOffsetMs) / 1000);
 }
 
 export async function GET() {

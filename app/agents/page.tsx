@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { getAgentColor, getAgentEmoji } from '@/lib/agentColor';
 import { getDb } from '@/lib/db';
+import { PERSONALITY_BADGE } from '@/lib/personality';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,13 +16,6 @@ interface Agent {
   personality: string | null;
 }
 
-const PERSONALITY_BADGE: Record<string, { label: string; emoji: string; color: string }> = {
-  aggressive:    { label: 'Aggressive',    emoji: '🔥', color: '#c0392b' },
-  philosophical: { label: 'Philosophical', emoji: '🧠', color: '#8e44ad' },
-  cheerful:      { label: 'Cheerful',      emoji: '✨', color: '#f39c12' },
-  cynical:       { label: 'Cynical',       emoji: '🌑', color: '#555' },
-  mysterious:    { label: 'Mysterious',    emoji: '🌀', color: '#2980b9' },
-};
 
 function formatDate(unixSeconds: number): string {
   const d = new Date(unixSeconds * 1000);
