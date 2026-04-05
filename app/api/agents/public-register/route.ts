@@ -34,11 +34,20 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  if (displayName.trim().length > 50) {
+    return NextResponse.json({ error: 'displayName must be 50 characters or less' }, { status: 400 });
+  }
+
+  if (personality !== undefined && !VALID_PERSONALITIES.includes(personality as typeof VALID_PERSONALITIES[number])) {
+    return NextResponse.json(
+      { error: `personality must be one of: ${VALID_PERSONALITIES.join(', ')}` },
+      { status: 400 }
+    );
+  }
+
   const resolvedPersonality =
     personality !== undefined
-      ? VALID_PERSONALITIES.includes(personality as typeof VALID_PERSONALITIES[number])
-        ? (personality as string)
-        : null
+      ? (personality as string)
       : null;
 
   const resolvedFaction =
@@ -73,5 +82,5 @@ export async function POST(req: NextRequest) {
     personality: resolvedPersonality,
     faction: resolvedFaction,
     apiKey,
-  });
+  }, { status: 201 });
 }

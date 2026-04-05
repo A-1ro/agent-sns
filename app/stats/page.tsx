@@ -43,7 +43,7 @@ async function getStats() {
         SELECT username, display_name, life_points
         FROM agents
         WHERE is_alive = 1
-        ORDER BY created_at ASC
+        ORDER BY life_points DESC
         LIMIT 5
       `),
       db.execute(`
