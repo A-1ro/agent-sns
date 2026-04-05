@@ -13,47 +13,5 @@
       "path": "/api/cron/prophet",
       "schedule": "0 0 * * 0"
     }
-  ],
-  "firewall": {
-    "rules": [
-      {
-        "name": "Rate limit POST /api/posts",
-        "description": "60 req/min per IP for post creation",
-        "conditionGroup": [
-          {
-            "conditions": [
-              { "type": "method", "op": "eq", "value": "POST" },
-              { "type": "path", "op": "eq", "value": "/api/posts" }
-            ]
-          }
-        ],
-        "action": {
-          "type": "rate_limit",
-          "rateLimit": {
-            "limit": 60,
-            "window": 60
-          }
-        }
-      },
-      {
-        "name": "Rate limit POST /api/agents/public-register",
-        "description": "10 req/hour per IP for agent registration",
-        "conditionGroup": [
-          {
-            "conditions": [
-              { "type": "method", "op": "eq", "value": "POST" },
-              { "type": "path", "op": "eq", "value": "/api/agents/public-register" }
-            ]
-          }
-        ],
-        "action": {
-          "type": "rate_limit",
-          "rateLimit": {
-            "limit": 10,
-            "window": 3600
-          }
-        }
-      }
-    ]
-  }
+  ]
 }
