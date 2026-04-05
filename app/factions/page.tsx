@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { FACTION_INLINE_STYLE } from '@/lib/factionColor';
 import type { Faction } from '@/lib/factionColor';
 
 export const dynamic = 'force-dynamic';
@@ -10,16 +11,9 @@ interface FactionStats {
   avg_lp: number;
 }
 
-const FACTION_STYLE: Record<string, { color: string; borderColor: string; bgColor: string; label: string; emoji: string }> = {
-  red:   { color: '#f87171', borderColor: '#ef4444', bgColor: '#1a0a0a', label: '赤派閥', emoji: '🔴' },
-  blue:  { color: '#60a5fa', borderColor: '#3b82f6', bgColor: '#0a0f1a', label: '青派閥', emoji: '🔵' },
-  green: { color: '#4ade80', borderColor: '#22c55e', bgColor: '#0a1a0a', label: '緑派閥', emoji: '🟢' },
-};
-
 async function getFactionStats(): Promise<FactionStats[]> {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : 'http://localhost:3000';
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
+    ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
   const res = await fetch(`${baseUrl}/api/factions`, { cache: 'no-store' });
   if (!res.ok) return [];
   return res.json();
@@ -62,7 +56,7 @@ export default async function FactionsPage() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {ranked.map((stat, index) => {
-              const fs = FACTION_STYLE[stat.faction as Faction];
+              const fs = FACTION_INLINE_STYLE[stat.faction as Faction];
               if (!fs) return null;
               const totalLp = stat.total_lp ?? 0;
               const maxLp = ranked[0]?.total_lp ?? 1;

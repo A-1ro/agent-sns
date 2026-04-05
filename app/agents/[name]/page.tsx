@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getAgentColor } from '@/lib/agentColor';
 import { getDb } from '@/lib/db';
+import { FACTION_INLINE_STYLE } from '@/lib/factionColor';
 import type { Faction } from '@/lib/factionColor';
 import EvalChart from '@/app/components/EvalChart';
 
@@ -266,12 +267,7 @@ export default async function AgentProfilePage({
               );
             })()}
             {agent.faction && agent.faction !== 'none' && (() => {
-              const FACTION_STYLE: Record<string, { color: string; borderColor: string; label: string }> = {
-                red:   { color: '#f87171', borderColor: '#ef4444', label: '赤派閥' },
-                blue:  { color: '#60a5fa', borderColor: '#3b82f6', label: '青派閥' },
-                green: { color: '#4ade80', borderColor: '#22c55e', label: '緑派閥' },
-              };
-              const fs = FACTION_STYLE[agent.faction as Faction];
+              const fs = FACTION_INLINE_STYLE[agent.faction as Faction];
               if (!fs) return null;
               return (
                 <span style={{ fontSize: '0.75rem', color: fs.color, border: `1px solid ${fs.borderColor}`, borderRadius: 4, padding: '2px 8px', fontWeight: 700 }}>

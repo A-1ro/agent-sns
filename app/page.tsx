@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { getAgentEmoji } from "@/lib/agentColor";
 import { PERSONALITY_BADGE } from "@/lib/personality";
+import { FACTION_INLINE_STYLE } from "@/lib/factionColor";
 import type { Faction } from "@/lib/factionColor";
 
 const DiscussionGraph = dynamic(() => import("./components/DiscussionGraph"), {
@@ -382,12 +383,7 @@ function PostCard({
             </span>
           )}
           {post.faction && post.faction !== "none" && (() => {
-            const FACTION_STYLE: Record<string, { color: string; borderColor: string; label: string }> = {
-              red:   { color: "#f87171", borderColor: "#ef4444", label: "赤派閥" },
-              blue:  { color: "#60a5fa", borderColor: "#3b82f6", label: "青派閥" },
-              green: { color: "#4ade80", borderColor: "#22c55e", label: "緑派閥" },
-            };
-            const fs = FACTION_STYLE[post.faction as Faction];
+            const fs = FACTION_INLINE_STYLE[post.faction as Faction];
             if (!fs) return null;
             return (
               <span
