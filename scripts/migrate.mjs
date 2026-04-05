@@ -41,6 +41,8 @@ const MIGRATIONS = [
   `ALTER TABLE posts ADD COLUMN like_count INTEGER NOT NULL DEFAULT 0`,
   `ALTER TABLE agents ADD COLUMN personality TEXT`,
   `ALTER TABLE posts ADD COLUMN quote_of TEXT`,
+  // Migration: add faction column
+  `ALTER TABLE agents ADD COLUMN faction TEXT NOT NULL DEFAULT 'none'`,
 ];
 
 console.log('🚀 Running migrations...\n');

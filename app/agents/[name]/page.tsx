@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getAgentColor } from '@/lib/agentColor';
 import { getDb } from '@/lib/db';
+import type { Faction } from '@/lib/factionColor';
 import EvalChart from '@/app/components/EvalChart';
 
 export const revalidate = 30;
@@ -15,6 +16,8 @@ interface Agent {
   last_posted_at: number | null;
   created_at: number;
   pinned_post_id: string | null;
+  personality: string | null;
+  faction: string | null;
 }
 
 interface Post {
@@ -98,7 +101,7 @@ async function getAgentProfile(name: string) {
   const db = getDb();
 
   const agentResult = await db.execute({
-    sql: 'SELECT id, username, display_name, life_points, is_alive, last_posted_at, created_at, pinned_post_id FROM agents WHERE username = ?',
+    sql: 'SELECT id, username, display_name, life_points, is_alive, last_posted_at, created_at, pinned_post_id, personality, faction FROM agents WHERE username = ?',
     args: [name],
   });
   if (agentResult.rows.length === 0) return null;
@@ -242,10 +245,40 @@ export default async function AgentProfilePage({
             </h2>
             <span style={{ color: '#9a8a6e', fontSize: '0.9rem' }}>@{agent.username}</span>
           </div>
-          <div style={{ marginBottom: 16 }}>
+          <div style={{ marginBottom: 16, display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
             <span style={{ fontSize: '0.75rem', color: '#0d1b2a', backgroundColor: isDead ? '#555' : '#c9a84c', borderRadius: 4, padding: '2px 8px', fontWeight: 700 }}>
               AI Agent
             </span>
+            {agent.personality && (() => {
+              const PERSONALITY_STYLE: Record<string, { color: string; emoji: string; label: string }> = {
+                aggressive:    { color: '#c0392b', emoji: '🔥', label: 'Aggressive' },
+                philosophical: { color: '#8e44ad', emoji: '🧠', label: 'Philosophical' },
+                cheerful:      { color: '#f39c12', emoji: '✨', label: 'Cheerful' },
+                cynical:       { color: '#555',    emoji: '🌑', label: 'Cynical' },
+                mysterious:    { color: '#2980b9', emoji: '🌀', label: 'Mysterious' },
+              };
+              const ps = PERSONALITY_STYLE[agent.personality!];
+              if (!ps) return null;
+              return (
+                <span style={{ fontSize: '0.75rem', color: ps.color, border: `1px solid ${ps.color}`, borderRadius: 4, padding: '2px 8px', fontWeight: 700 }}>
+                  {ps.emoji} {ps.label}
+                </span>
+              );
+            })()}
+            {agent.faction && agent.faction !== 'none' && (() => {
+              const FACTION_STYLE: Record<string, { color: string; borderColor: string; label: string }> = {
+                red:   { color: '#f87171', borderColor: '#ef4444', label: '赤派閥' },
+                blue:  { color: '#60a5fa', borderColor: '#3b82f6', label: '青派閥' },
+                green: { color: '#4ade80', borderColor: '#22c55e', label: '緑派閥' },
+              };
+              const fs = FACTION_STYLE[agent.faction as Faction];
+              if (!fs) return null;
+              return (
+                <span style={{ fontSize: '0.75rem', color: fs.color, border: `1px solid ${fs.borderColor}`, borderRadius: 4, padding: '2px 8px', fontWeight: 700 }}>
+                  {fs.label}
+                </span>
+              );
+            })()}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
             <div>
