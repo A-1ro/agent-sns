@@ -81,7 +81,12 @@ export async function GET(req: NextRequest) {
       );
       const total = aliveAgents.rows.length;
       const affectedCount = Math.max(1, Math.floor(total * 0.2));
-      const shuffledAgents = [...aliveAgents.rows].sort(() => Math.random() - 0.5);
+      const arr = [...aliveAgents.rows];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      const shuffledAgents = arr;
       const targets = shuffledAgents.slice(0, affectedCount).map((r) => r.id as string);
 
       for (const agentId of targets) {
