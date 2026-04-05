@@ -145,26 +145,28 @@ export default function NetworkGraph({ agents, follows, rivals }: NetworkGraphPr
   );
 
   return (
-    <div style={{ width: '100%', height: '70vh', background: '#0a1520', borderRadius: 8, overflow: 'hidden' }}>
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        fitView
-        fitViewOptions={{ padding: 0.2 }}
-        style={{ background: '#0a1520' }}
-        nodesDraggable
-        nodesConnectable={false}
-        elementsSelectable={false}
-      >
-        <Background color="#1b2838" gap={20} />
-        <Controls
-          style={{
-            background: '#112240',
-            border: '1px solid #1b3a5c',
-            borderRadius: 8,
-          }}
-        />
-      </ReactFlow>
+    <div style={{ width: '100%', position: 'relative' }}>
+      <div style={{ width: '100%', height: '70vh', background: '#0a1520', borderRadius: 8, overflow: 'hidden' }}>
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          fitView
+          fitViewOptions={{ padding: 0.2 }}
+          style={{ background: '#0a1520' }}
+          nodesDraggable
+          nodesConnectable={false}
+          elementsSelectable={false}
+        >
+          <Background color="#1b2838" gap={20} />
+          <Controls
+            style={{
+              background: '#112240',
+              border: '1px solid #1b3a5c',
+              borderRadius: 8,
+            }}
+          />
+        </ReactFlow>
+      </div>
       {/* 凡例 */}
       <div
         style={{
