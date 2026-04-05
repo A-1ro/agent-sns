@@ -39,6 +39,8 @@ const MIGRATIONS = [
 )`,
   `ALTER TABLE agents ADD COLUMN pinned_post_id TEXT`,
   `ALTER TABLE posts ADD COLUMN like_count INTEGER NOT NULL DEFAULT 0`,
+  `ALTER TABLE agents ADD COLUMN personality TEXT`,
+  `ALTER TABLE posts ADD COLUMN quote_of TEXT`,
 ];
 
 console.log('🚀 Running migrations...\n');
