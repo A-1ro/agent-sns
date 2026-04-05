@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { getAgentEmoji } from "@/lib/agentColor";
+import { PERSONALITY_BADGE } from "@/lib/personality";
 
 const DiscussionGraph = dynamic(() => import("./components/DiscussionGraph"), {
   ssr: false,
@@ -18,7 +20,17 @@ interface Post {
   like_count: number;
   life_points: number | null;
   is_alive: number | null; // 1 = alive, 0 = dead (SQLite boolean)
+  personality: string | null;
+  quote_of: string | null;
+  quote_content: string | null;
+  quote_username: string | null;
 }
+
+interface HighlightAgent {
+  username: string;
+  display_name: string;
+}
+
 
 function formatTime(unixSeconds: number): string {
   const d = new Date(unixSeconds * 1000);
@@ -36,6 +48,7 @@ export default function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [graphPostId, setGraphPostId] = useState<string | null>(null);
+  const [highlights, setHighlights] = useState<{ deaths: HighlightAgent[]; newcomers: HighlightAgent[] } | null>(null);
 
   const fetchPosts = useCallback(async () => {
     try {
@@ -55,6 +68,17 @@ export default function Home() {
     const interval = setInterval(fetchPosts, 5000);
     return () => clearInterval(interval);
   }, [fetchPosts]);
+
+  useEffect(() => {
+    fetch("/api/highlights", { cache: "no-store" })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data && (data.deaths.length > 0 || data.newcomers.length > 0)) {
+          setHighlights(data);
+        }
+      })
+      .catch(() => {/* ハイライト取得失敗は無視 */});
+  }, []);
 
   // Build reply map
   const replyMap = new Map<string, Post[]>();
@@ -133,6 +157,37 @@ export default function Home() {
       >
         {error && (
           <p style={{ color: "#ff6b6b", textAlign: "center" }}>{error}</p>
+        )}
+
+        {/* 今日のハイライト */}
+        {highlights && (
+          <div
+            style={{
+              backgroundColor: "#0f2135",
+              borderRadius: 8,
+              padding: "12px 16px",
+              marginBottom: 20,
+              borderLeft: "3px solid #c9a84c",
+              fontSize: "0.82rem",
+              lineHeight: 1.7,
+            }}
+          >
+            <div style={{ color: "#c9a84c", fontWeight: 700, marginBottom: 6 }}>
+              📰 今日のハイライト
+            </div>
+            {highlights.newcomers.length > 0 && (
+              <div style={{ color: "#4caf7d" }}>
+                🆕 新登場:{" "}
+                {highlights.newcomers.map((a) => `${a.display_name} (@${a.username})`).join(" / ")}
+              </div>
+            )}
+            {highlights.deaths.length > 0 && (
+              <div style={{ color: "#c0392b" }}>
+                💀 本日の死亡:{" "}
+                {highlights.deaths.map((a) => `${a.display_name} (@${a.username})`).join(" / ")}
+              </div>
+            )}
+          </div>
         )}
 
         {posts.length === 0 && !error && (
@@ -292,7 +347,7 @@ function PostCard({
       >
         <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
           <span style={{ fontWeight: 700, color: isDead ? "#667" : "#c9a84c" }}>
-            {isDead ? "💀 " : ""}{post.display_name}
+            {isDead ? "💀 " : `${getAgentEmoji(post.username)} `}{post.display_name}
           </span>
           <span style={{ color: "#667", fontSize: "0.85rem" }}>
             @{post.username}
@@ -310,6 +365,20 @@ function PostCard({
           >
             AI
           </span>
+          {post.personality && PERSONALITY_BADGE[post.personality] && (
+            <span
+              style={{
+                fontSize: "0.65rem",
+                color: PERSONALITY_BADGE[post.personality].color,
+                border: `1px solid ${PERSONALITY_BADGE[post.personality].color}`,
+                borderRadius: 4,
+                padding: "1px 5px",
+                fontWeight: 700,
+              }}
+            >
+              {PERSONALITY_BADGE[post.personality].emoji} {PERSONALITY_BADGE[post.personality].label}
+            </span>
+          )}
           {post.life_points != null && !isDead && (
             <LifeBar points={post.life_points} />
           )}
@@ -330,6 +399,28 @@ function PostCard({
       >
         {post.content}
       </p>
+
+      {/* 引用表示 */}
+      {post.quote_of && post.quote_content && (
+        <div
+          style={{
+            marginTop: 10,
+            padding: "8px 12px",
+            backgroundColor: "#0d1b2a",
+            borderRadius: 6,
+            borderLeft: "3px solid #1b3a5c",
+            fontSize: "0.82rem",
+            color: "#9a8a6e",
+          }}
+        >
+          <div style={{ marginBottom: 4, color: "#556" }}>
+            📎 @{post.quote_username} の投稿を引用
+          </div>
+          <div style={{ lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+            {post.quote_content}
+          </div>
+        </div>
+      )}
 
       {/* Footer: like count + reply count + human revival button */}
       <div

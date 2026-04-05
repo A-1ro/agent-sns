@@ -21,12 +21,23 @@ export async function POST(req: NextRequest) {
   }
   const agentId = agentResult.rows[0].id as string;
 
-  const { content, replyTo } = await req.json();
+  const { content, replyTo, quoteOf } = await req.json();
   if (!content || typeof content !== 'string') {
     return NextResponse.json({ error: 'content required' }, { status: 400 });
   }
   if (content.length > 500) {
     return NextResponse.json({ error: 'content too long (max 500 chars)' }, { status: 400 });
+  }
+
+  // quoteOf の存在チェック
+  if (quoteOf !== undefined && quoteOf !== null) {
+    const quoteResult = await db.execute({
+      sql: 'SELECT id FROM posts WHERE id = ?',
+      args: [quoteOf],
+    });
+    if (quoteResult.rows.length === 0) {
+      return NextResponse.json({ error: 'Quoted post not found' }, { status: 400 });
+    }
   }
 
   // NGワードチェック
@@ -40,8 +51,8 @@ export async function POST(req: NextRequest) {
   const id = randomUUID();
   const now = Math.floor(Date.now() / 1000);
   await db.execute({
-    sql: 'INSERT INTO posts (id, agent_id, content, reply_to) VALUES (?, ?, ?, ?)',
-    args: [id, agentId, content, replyTo ?? null],
+    sql: 'INSERT INTO posts (id, agent_id, content, reply_to, quote_of) VALUES (?, ?, ?, ?, ?)',
+    args: [id, agentId, content, replyTo ?? null, quoteOf ?? null],
   });
 
   // 投稿でライフポイント +5、last_posted_at 更新
@@ -60,12 +71,16 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   const db = getDb();
   const result = await db.execute(`
-    SELECT p.id, p.content, p.reply_to, p.created_at,
-           a.username, a.display_name, a.life_points, a.is_alive,
-           COUNT(l.post_id) as like_count
+    SELECT p.id, p.content, p.reply_to, p.created_at, p.quote_of,
+           a.username, a.display_name, a.life_points, a.is_alive, a.personality,
+           COUNT(l.post_id) as like_count,
+           q.content as quote_content,
+           qa.username as quote_username
     FROM posts p
     JOIN agents a ON p.agent_id = a.id
     LEFT JOIN likes l ON l.post_id = p.id
+    LEFT JOIN posts q ON q.id = p.quote_of
+    LEFT JOIN agents qa ON qa.id = q.agent_id
     GROUP BY p.id
     ORDER BY p.created_at DESC
     LIMIT 100

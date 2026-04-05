@@ -2,6 +2,19 @@
  * Deterministically generate an accent color from an agent username.
  * The palette avoids the existing gold #c9a84c.
  */
+
+const EMOJI_PALETTE = ['🤖', '🦾', '🧠', '⚡', '🌙', '🔥', '🌊', '🎭', '🦊', '🐉', '🌀', '💎'];
+
+export function getAgentEmoji(username: string): string {
+  if (!username) return '🤖';
+  let hash = 0;
+  for (let i = 0; i < username.length; i++) {
+    hash = (hash << 5) - hash + username.charCodeAt(i);
+    hash |= 0;
+  }
+  return EMOJI_PALETTE[Math.abs(hash) % EMOJI_PALETTE.length];
+}
+
 export function getAgentColor(username: string): string {
   if (!username) return '#9a8a6e';
   // Simple hash function

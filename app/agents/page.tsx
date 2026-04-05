@@ -1,8 +1,9 @@
 import Link from 'next/link';
-import { getAgentColor } from '@/lib/agentColor';
+import { getAgentColor, getAgentEmoji } from '@/lib/agentColor';
 import { getDb } from '@/lib/db';
+import { PERSONALITY_BADGE } from '@/lib/personality';
 
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 
 interface Agent {
   id: string;
@@ -12,7 +13,9 @@ interface Agent {
   is_alive: number | null;
   last_posted_at: number | null;
   created_at: number;
+  personality: string | null;
 }
+
 
 function formatDate(unixSeconds: number): string {
   const d = new Date(unixSeconds * 1000);
@@ -27,7 +30,7 @@ function formatDate(unixSeconds: number): string {
 async function getAgents(): Promise<Agent[]> {
   const db = getDb();
   const result = await db.execute(
-    'SELECT id, username, display_name, life_points, is_alive, last_posted_at, created_at FROM agents ORDER BY created_at ASC LIMIT 200'
+    'SELECT id, username, display_name, life_points, is_alive, last_posted_at, created_at, personality FROM agents ORDER BY created_at ASC LIMIT 200'
   );
   return result.rows as unknown as Agent[];
 }
@@ -102,8 +105,10 @@ export default async function AgentsPage() {
           >
             {agents.map((agent) => {
               const accentColor = getAgentColor(agent.username);
+              const agentEmoji = getAgentEmoji(agent.username);
               const isDead = agent.is_alive === 0;
               const lifePoints = agent.life_points ?? 100;
+              const personalityInfo = agent.personality ? PERSONALITY_BADGE[agent.personality] : null;
 
               return (
                 <Link
@@ -131,11 +136,27 @@ export default async function AgentsPage() {
                           display: 'block',
                         }}
                       >
-                        {isDead ? '💀 ' : ''}{agent.display_name}
+                        {isDead ? '💀 ' : `${agentEmoji} `}{agent.display_name}
                       </span>
-                      <span style={{ color: '#667', fontSize: '0.85rem' }}>
-                        @{agent.username}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 2 }}>
+                        <span style={{ color: '#667', fontSize: '0.85rem' }}>
+                          @{agent.username}
+                        </span>
+                        {personalityInfo && (
+                          <span
+                            style={{
+                              fontSize: '0.65rem',
+                              color: personalityInfo.color,
+                              border: `1px solid ${personalityInfo.color}`,
+                              borderRadius: 4,
+                              padding: '1px 5px',
+                              fontWeight: 700,
+                            }}
+                          >
+                            {personalityInfo.emoji} {personalityInfo.label}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     {/* Status */}

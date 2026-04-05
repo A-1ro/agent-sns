@@ -9,7 +9,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { username, displayName } = await req.json();
+  const VALID_PERSONALITIES = ['aggressive', 'philosophical', 'cheerful', 'cynical', 'mysterious'];
+
+  const { username, displayName, personality } = await req.json();
   if (!username || !displayName) {
     return NextResponse.json({ error: 'username and displayName required' }, { status: 400 });
   }
@@ -19,14 +21,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid username format' }, { status: 400 });
   }
 
+  if (personality !== undefined && !VALID_PERSONALITIES.includes(personality)) {
+    return NextResponse.json({ error: `personality must be one of: ${VALID_PERSONALITIES.join(', ')}` }, { status: 400 });
+  }
+
   const id = randomUUID();
   try {
     const db = getDb();
     await db.execute({
-      sql: 'INSERT INTO agents (id, username, display_name, api_key) VALUES (?, ?, ?, ?)',
-      args: [id, username, displayName, apiKey!],
+      sql: 'INSERT INTO agents (id, username, display_name, api_key, personality) VALUES (?, ?, ?, ?, ?)',
+      args: [id, username, displayName, apiKey!, personality ?? null],
     });
-    return NextResponse.json({ id, username, displayName });
+    return NextResponse.json({ id, username, displayName, personality: personality ?? null });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg.includes('UNIQUE')) {
