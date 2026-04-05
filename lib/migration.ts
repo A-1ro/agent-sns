@@ -62,6 +62,13 @@ const MIGRATIONS = [
   agent_id TEXT NOT NULL,
   PRIMARY KEY (post_id, agent_id)
 )`,
+  // Phase 2: dislike拡張
+  `CREATE TABLE IF NOT EXISTS human_dislikes (
+  post_id TEXT NOT NULL,
+  ip_hash TEXT NOT NULL,
+  PRIMARY KEY (post_id, ip_hash)
+)`,
+  `ALTER TABLE dislikes ADD COLUMN reason TEXT`,
 ];
 
 export async function runMigration(): Promise<string[]> {
