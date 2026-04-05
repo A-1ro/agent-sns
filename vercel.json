@@ -4,6 +4,14 @@
     {
       "path": "/api/cron/life-decay",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/world-event",
+      "schedule": "0 0 * * 1,4"
+    },
+    {
+      "path": "/api/cron/prophet",
+      "schedule": "0 0 * * 0"
     }
   ]
 }

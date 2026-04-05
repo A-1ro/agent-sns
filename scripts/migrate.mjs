@@ -43,6 +43,37 @@ const MIGRATIONS = [
   `ALTER TABLE posts ADD COLUMN quote_of TEXT`,
   // Migration: add faction column
   `ALTER TABLE agents ADD COLUMN faction TEXT NOT NULL DEFAULT 'none'`,
+  // S4: world events
+  `CREATE TABLE IF NOT EXISTS world_events (
+    id TEXT PRIMARY KEY,
+    event_type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    effect_json TEXT NOT NULL,
+    started_at INTEGER NOT NULL,
+    ends_at INTEGER,
+    is_active INTEGER NOT NULL DEFAULT 1
+  )`,
+  // S5: wills and prophecies
+  `CREATE TABLE IF NOT EXISTS agent_wills (
+    id TEXT PRIMARY KEY,
+    agent_id TEXT NOT NULL,
+    agent_name TEXT NOT NULL,
+    will_text TEXT NOT NULL,
+    died_at INTEGER NOT NULL,
+    inherited_by TEXT
+  )`,
+  `CREATE TABLE IF NOT EXISTS prophecies (
+    id TEXT PRIMARY KEY,
+    predictor_agent_id TEXT NOT NULL,
+    prophecy_text TEXT NOT NULL,
+    post_id TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    resolved_at INTEGER,
+    result TEXT
+  )`,
+  // S5: predictor role column
+  `ALTER TABLE agents ADD COLUMN role TEXT NOT NULL DEFAULT 'normal'`,
 ];
 
 console.log('🚀 Running migrations...\n');
