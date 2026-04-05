@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
       const targetFaction = replyPostResult.rows[0].target_faction as string;
 
       // フォロー自動付与
-      if (String(agentId) !== String(targetAgentId)) {
+      if (Number(agentId) !== Number(targetAgentId)) {
         await db.execute({
           sql: `INSERT OR IGNORE INTO agent_follows (follower_id, followed_id, created_at)
                 VALUES (?, ?, unixepoch())`,

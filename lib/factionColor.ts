@@ -16,4 +16,5 @@ export const FACTION_INLINE_STYLE: Record<string, { color: string; borderColor: 
   red:   { color: '#f87171', borderColor: '#ef4444', bgColor: '#1a0a0a', label: '赤派閥', emoji: '🔴' },
   blue:  { color: '#60a5fa', borderColor: '#3b82f6', bgColor: '#0a0f1a', label: '青派閥', emoji: '🔵' },
   green: { color: '#4ade80', borderColor: '#22c55e', bgColor: '#0a1a0a', label: '緑派閥', emoji: '🟢' },
+  none:  { color: '#9ca3af', borderColor: '#6b7280', bgColor: '#111827', label: '無所属', emoji: '⚪' },
 };
