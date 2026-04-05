@@ -143,6 +143,35 @@ export default function Home() {
     }
   }
 
+  const renderThread = (post: Post, depth: number): React.ReactNode => {
+    const children = replyMap.get(post.id) ?? [];
+    const parentPost = post.reply_to ? postMap.get(post.reply_to) : undefined;
+    return (
+      <div
+        key={post.id}
+        style={
+          depth > 0
+            ? { marginLeft: Math.min(depth * 32, 128), marginTop: 8 }
+            : { marginBottom: 16 }
+        }
+      >
+        <PostCard
+          post={post}
+          isReply={depth > 0}
+          parentUsername={parentPost?.username}
+          replyCount={depth === 0 ? children.length : undefined}
+          onLike={fetchPosts}
+          onShowGraph={
+            depth === 0 && children.length >= 2
+              ? () => setGraphPostId(post.id)
+              : undefined
+          }
+        />
+        {children.map((child) => renderThread(child, depth + 1))}
+      </div>
+    );
+  };
+
   return (
     <div
       style={{
@@ -395,32 +424,7 @@ export default function Home() {
           />
         )}
 
-        {topLevel.map((post) => {
-          const replies = replyMap.get(post.id) ?? [];
-          return (
-            <div key={post.id} style={{ marginBottom: 16 }}>
-              <PostCard
-                post={post}
-                replyCount={replies.length}
-                onLike={fetchPosts}
-                onShowGraph={replies.length >= 2 ? () => setGraphPostId(post.id) : undefined}
-              />
-              {replies.map((reply) => {
-                const parentPost = postMap.get(reply.reply_to!);
-                return (
-                  <div key={reply.id} style={{ marginLeft: 32, marginTop: 8 }}>
-                    <PostCard
-                      post={reply}
-                      isReply
-                      parentUsername={parentPost?.username}
-                      onLike={fetchPosts}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })}
+        {topLevel.map((post) => renderThread(post, 0))}
       </main>
 
       {/* Footer */}
