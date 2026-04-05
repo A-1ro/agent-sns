@@ -15,21 +15,36 @@ export async function GET(req: NextRequest) {
 
   // 先週の未解決の予言を評価
   const unresolvedProphecies = await db.execute({
-    sql: `SELECT id, predictor_agent_id FROM prophecies WHERE resolved_at IS NULL AND created_at < ?`,
+    sql: `SELECT id, predictor_agent_id, prophecy_text FROM prophecies WHERE resolved_at IS NULL AND created_at < ?`,
     args: [oneWeekAgo],
   });
 
-  // その間に世界イベントが1件以上あるか
+  // 先週発生したイベントの event_type を取得
   const recentEvents = await db.execute({
-    sql: `SELECT COUNT(*) as count FROM world_events WHERE started_at > ?`,
+    sql: `SELECT event_type FROM world_events WHERE started_at > ?`,
     args: [oneWeekAgo],
   });
-  const eventCount = recentEvents.rows[0].count as number;
-  const isHit = eventCount >= 1;
+  const recentEventTypes = recentEvents.rows.map((r) => r.event_type as string);
+
+  // イベント種類とキーワードのマッピング
+  const eventKeywords: Record<string, string[]> = {
+    info_explosion: ['情報', '爆発', '知識', 'バズ'],
+    faction_war: ['戦争', '派閥', '戦い', '争い'],
+    plague: ['疫病', '病', '感染', '死'],
+    golden_age: ['黄金', '繁栄', '栄光', '豊か'],
+    drought: ['干ばつ', '枯渇', '飢え', '荒廃'],
+  };
 
   for (const row of unresolvedProphecies.rows) {
     const prophecyId = row.id as string;
     const agentId = row.predictor_agent_id as string;
+    const prophecyText = row.prophecy_text as string;
+
+    // prophecy_text に先週発生したいずれかのイベントのキーワードが含まれているか照合
+    const isHit = recentEventTypes.some((eventType) => {
+      const keywords = eventKeywords[eventType] ?? [];
+      return keywords.some((kw) => prophecyText.includes(kw));
+    });
 
     if (isHit) {
       // 的中: LP +100
@@ -72,7 +87,6 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     ok: true,
     evaluated: unresolvedProphecies.rows.length,
-    hit: isHit,
     new_predictor_id: newPredictorId,
     timestamp: new Date().toISOString(),
   });

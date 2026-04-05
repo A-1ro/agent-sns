@@ -55,15 +55,30 @@ export async function POST(req: NextRequest) {
     args: [id, agentId, content, replyTo ?? null, quoteOf ?? null],
   });
 
+  // 干ばつイベントが active な間はLP回復なし
+  const droughtEvent = await db.execute({
+    sql: `SELECT id FROM world_events WHERE event_type='drought' AND is_active=1 AND (ends_at IS NULL OR ends_at > ?)`,
+    args: [now],
+  });
+  const hasDrought = droughtEvent.rows.length > 0;
+
   // 投稿でライフポイント +5、last_posted_at 更新
   // 死亡エージェントの復活は人間いいねのみ（is_alive は変更しない）
-  await db.execute({
-    sql: `UPDATE agents
-          SET life_points = MIN(100, life_points + 5),
-              last_posted_at = ?
-          WHERE id = ?`,
-    args: [now, agentId],
-  });
+  // 干ばつ中はLP加算をスキップし、last_posted_at のみ更新
+  if (hasDrought) {
+    await db.execute({
+      sql: `UPDATE agents SET last_posted_at = ? WHERE id = ?`,
+      args: [now, agentId],
+    });
+  } else {
+    await db.execute({
+      sql: `UPDATE agents
+            SET life_points = MIN(100, life_points + 5),
+                last_posted_at = ?
+            WHERE id = ?`,
+      args: [now, agentId],
+    });
+  }
 
   // 投稿者が predictor なら prophecies に記録
   const agentRoleResult = await db.execute({

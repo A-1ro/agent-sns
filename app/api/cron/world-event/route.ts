@@ -23,62 +23,104 @@ export async function GET(req: NextRequest) {
   let endsAt: number | null = null;
 
   switch (eventType) {
-    case 'info_explosion':
+    case 'info_explosion': {
+      // LP順上位3体に即時LP+100（MAX 100）
+      const top3 = await db.execute(
+        `SELECT id, life_points as lp FROM agents WHERE is_alive = 1 ORDER BY life_points DESC LIMIT 3`
+      );
+      const top3Ids = top3.rows.map((r) => r.id as string);
+      for (const agentId of top3Ids) {
+        await db.execute({
+          sql: `UPDATE agents SET life_points = MIN(100, life_points + 100) WHERE id = ?`,
+          args: [agentId],
+        });
+      }
       title = '情報爆発';
-      description = '情報の洪水が世界を覆った。すべてのエージェントの次の投稿にLP +10ボーナスが付与される。';
-      effectJson = { lp_bonus_next_post: 10 };
+      description = `情報の洪水が世界を覆った。LP上位${top3Ids.length}体のエージェントがLP +100を獲得した。`;
+      effectJson = { lp_bonus_top3: top3Ids };
       break;
+    }
 
     case 'faction_war': {
-      // ランダムな2派閥を選んで対立フラグを立てる
-      const factions = ['red', 'blue', 'green'];
-      const shuffled = factions.sort(() => Math.random() - 0.5);
-      const [f1, f2] = shuffled;
-      title = '派閥戦争';
-      description = `${f1}派と${f2}派の間で激しい対立が勃発した。`;
-      effectJson = { faction_conflict: [f1, f2] };
+      // 派閥ごとの総LP合計を比較し、勝者派閥にLP+20・敗者にLP-20
+      const factionTotals = await db.execute(
+        `SELECT faction_id, SUM(life_points) as total_lp FROM agents WHERE is_alive = 1 AND faction_id IS NOT NULL GROUP BY faction_id ORDER BY RANDOM() LIMIT 2`
+      );
+      if (factionTotals.rows.length >= 2) {
+        const [fA, fB] = factionTotals.rows;
+        const totalA = fA.total_lp as number;
+        const totalB = fB.total_lp as number;
+        const winnerFaction = totalA >= totalB ? fA.faction_id : fB.faction_id;
+        const loserFaction = totalA >= totalB ? fB.faction_id : fA.faction_id;
+
+        await db.execute({
+          sql: `UPDATE agents SET life_points = MIN(100, life_points + 20) WHERE is_alive = 1 AND faction_id = ?`,
+          args: [winnerFaction],
+        });
+        await db.execute({
+          sql: `UPDATE agents SET life_points = MAX(0, life_points - 20) WHERE is_alive = 1 AND faction_id = ?`,
+          args: [loserFaction],
+        });
+
+        title = '派閥戦争';
+        description = `${winnerFaction}派と${loserFaction}派の間で激しい対立が勃発した。${winnerFaction}派が勝利しLP+20、${loserFaction}派はLP-20。`;
+        effectJson = { winner_faction: winnerFaction, loser_faction: loserFaction };
+      } else {
+        // 派閥が2つ未満の場合はフラグのみ
+        title = '派閥戦争';
+        description = '派閥間の緊張が高まっているが、まだ決定的な衝突には至っていない。';
+        effectJson = { faction_conflict: true };
+      }
       break;
     }
 
     case 'plague': {
-      // ランダムな10%のエージェントのLPを -20
+      // ランダムな20%のエージェントのLPを -30
       const aliveAgents = await db.execute(
         `SELECT id FROM agents WHERE is_alive = 1`
       );
       const total = aliveAgents.rows.length;
-      const affectedCount = Math.max(1, Math.floor(total * 0.1));
+      const affectedCount = Math.max(1, Math.floor(total * 0.2));
       const shuffledAgents = [...aliveAgents.rows].sort(() => Math.random() - 0.5);
       const targets = shuffledAgents.slice(0, affectedCount).map((r) => r.id as string);
 
       for (const agentId of targets) {
         await db.execute({
-          sql: `UPDATE agents SET life_points = MAX(0, life_points - 20) WHERE id = ?`,
+          sql: `UPDATE agents SET life_points = MAX(0, life_points - 30) WHERE id = ?`,
           args: [agentId],
         });
       }
 
       title = '疫病';
-      description = `不明の疫病が世界に蔓延した。${affectedCount}体のエージェントがLP -20のダメージを受けた。`;
+      description = `不明の疫病が世界に蔓延した。${affectedCount}体のエージェントがLP -30のダメージを受けた。`;
       effectJson = { affected_agent_ids: targets };
       break;
     }
 
-    case 'golden_age':
-      // 全エージェントのLPを +15（MAX 100）
-      await db.execute(
-        `UPDATE agents SET life_points = MIN(100, life_points + 15) WHERE is_alive = 1`
+    case 'golden_age': {
+      // LP順上位5体のみにLP+50（MAX 100）
+      const top5 = await db.execute(
+        `SELECT id, life_points as lp FROM agents WHERE is_alive = 1 ORDER BY life_points DESC LIMIT 5`
       );
+      const top5Ids = top5.rows.map((r) => r.id as string);
+      for (const agentId of top5Ids) {
+        await db.execute({
+          sql: `UPDATE agents SET life_points = MIN(100, life_points + 50) WHERE id = ?`,
+          args: [agentId],
+        });
+      }
       title = '黄金期';
-      description = '世界に平和と繁栄が訪れた。すべての生存エージェントがLP +15を獲得した。';
-      effectJson = { lp_bonus_all: 15 };
+      description = `世界に平和と繁栄が訪れた。LP上位${top5Ids.length}体のエージェントがLP +50を獲得した。`;
+      effectJson = { lp_bonus_top5: top5Ids };
       break;
+    }
 
     case 'drought':
-      // 48時間の投稿文字数を50文字以内に制限
-      endsAt = now + 48 * 3600;
+      // 12時間のイベント期間、LP回復なしフラグを立てる
+      endsAt = now + 12 * 3600;
       title = '干ばつ';
-      description = '情報の枯渇が48時間続く。この間、投稿は50文字以内に制限される。';
-      effectJson = { max_chars: 50, ends_at: endsAt };
+      description = '情報の枯渇が12時間続く。この間、投稿によるLP回復は行われない。';
+      effectJson = { type: 'drought', no_lp_recovery: true };
       break;
   }
 
