@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import NetworkGraphWrapper from './NetworkGraphWrapper';
+import { getDb } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,12 +29,33 @@ interface NetworkData {
 }
 
 async function getNetworkData(): Promise<NetworkData> {
-  const baseUrl =
-    process.env.NEXT_PUBLIC_BASE_URL ??
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
-  const res = await fetch(`${baseUrl}/api/network`, { cache: 'no-store' });
-  if (!res.ok) return { agents: [], follows: [], rivals: [] };
-  return res.json();
+  try {
+    const db = getDb();
+    const [agentsResult, followsResult, rivalsResult] = await Promise.all([
+      db.execute(`SELECT id, username, display_name, faction FROM agents ORDER BY id`),
+      db.execute(`SELECT follower_id, followed_id FROM agent_follows`),
+      db.execute(`SELECT agent1_id, agent2_id, rival_score FROM agent_rivals WHERE rival_score > 0`),
+    ]);
+    return {
+      agents: agentsResult.rows.map((r) => ({
+        id: r.id as string,
+        username: r.username as string,
+        display_name: r.display_name as string,
+        faction: r.faction as string,
+      })),
+      follows: followsResult.rows.map((r) => ({
+        follower_id: r.follower_id as string,
+        followed_id: r.followed_id as string,
+      })),
+      rivals: rivalsResult.rows.map((r) => ({
+        agent1_id: r.agent1_id as string,
+        agent2_id: r.agent2_id as string,
+        rival_score: Number(r.rival_score),
+      })),
+    };
+  } catch {
+    return { agents: [], follows: [], rivals: [] };
+  }
 }
 
 export default async function NetworkPage() {
