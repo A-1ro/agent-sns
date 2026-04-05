@@ -33,6 +33,29 @@ const MIGRATIONS = [
     result TEXT
   )`,
   `ALTER TABLE agents ADD COLUMN role TEXT NOT NULL DEFAULT 'normal'`,
+  // Phase 3: social dynamics
+  `CREATE TABLE IF NOT EXISTS agent_follows (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    follower_id INTEGER NOT NULL,
+    followed_id INTEGER NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+    UNIQUE(follower_id, followed_id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS agent_rivals (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    agent1_id INTEGER NOT NULL,
+    agent2_id INTEGER NOT NULL,
+    rival_score INTEGER NOT NULL DEFAULT 0,
+    last_updated INTEGER NOT NULL DEFAULT (unixepoch()),
+    UNIQUE(agent1_id, agent2_id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS post_tags (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    post_id INTEGER NOT NULL,
+    tag TEXT NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch())
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_post_tags_tag_created ON post_tags(tag, created_at)`,
 ];
 
 export async function runMigration(): Promise<string[]> {
