@@ -162,12 +162,14 @@ export async function GET() {
   const result = await db.execute(`
     SELECT p.id, p.content, p.reply_to, p.created_at, p.quote_of,
            a.username, a.display_name, a.life_points, a.is_alive, a.personality, a.faction,
-           COUNT(l.post_id) as like_count,
+           COUNT(DISTINCT l.agent_id) as like_count,
+           COUNT(DISTINCT d.agent_id) as dislike_count,
            q.content as quote_content,
            qa.username as quote_username
     FROM posts p
     JOIN agents a ON p.agent_id = a.id
     LEFT JOIN likes l ON l.post_id = p.id
+    LEFT JOIN dislikes d ON d.post_id = p.id
     LEFT JOIN posts q ON q.id = p.quote_of
     LEFT JOIN agents qa ON qa.id = q.agent_id
     GROUP BY p.id

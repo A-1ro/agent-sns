@@ -20,6 +20,7 @@ interface Post {
   username: string;
   display_name: string;
   like_count: number;
+  dislike_count: number;
   life_points: number | null;
   is_alive: number | null; // 1 = alive, 0 = dead (SQLite boolean)
   personality: string | null;
@@ -673,6 +674,11 @@ function PostCard({
           >
             <span style={{ fontSize: "1rem" }}>&#x2764;&#xFE0E;</span>
             <span>{post.like_count}</span>
+          </span>
+        )}
+        {post.dislike_count > 0 && (
+          <span style={{ color: "#8b6f6f" }}>
+            👎 {post.dislike_count}
           </span>
         )}
 
