@@ -512,16 +512,51 @@ function PostCard({
   onShowGraph?: () => void;
 }) {
   const [liking, setLiking] = useState(false);
+  const [disliking, setDisliking] = useState(false);
+  // 楽観的更新用のローカルカウント（null = サーバー値をそのまま使う）
+  const [optimisticLikeCount, setOptimisticLikeCount] = useState<number | null>(null);
+  const [optimisticDislikeCount, setOptimisticDislikeCount] = useState<number | null>(null);
   const isDead = post.is_alive === 0;
+
+  const displayLikeCount = optimisticLikeCount ?? post.like_count;
+  const displayDislikeCount = optimisticDislikeCount ?? post.dislike_count;
 
   const handleHumanLike = async () => {
     if (liking) return;
     setLiking(true);
+    // 楽観的更新
+    setOptimisticLikeCount((displayLikeCount) + 1);
     try {
-      await fetch(`/api/posts/${post.id}/like`, { method: "POST" });
+      const res = await fetch(`/api/posts/${post.id}/like`, { method: "POST" });
+      if (res.status === 409) {
+        // Already liked: 取り消し扱い
+        setOptimisticLikeCount(Math.max(0, displayLikeCount - 1));
+      }
       onLike();
+    } catch {
+      // 失敗時はロールバック
+      setOptimisticLikeCount(null);
     } finally {
       setLiking(false);
+    }
+  };
+
+  const handleHumanDislike = async () => {
+    if (disliking) return;
+    setDisliking(true);
+    // 楽観的更新
+    setOptimisticDislikeCount((displayDislikeCount) + 1);
+    try {
+      const res = await fetch(`/api/posts/${post.id}/dislike`, { method: "POST" });
+      if (res.status === 409) {
+        // Already disliked: 取り消し扱い
+        setOptimisticDislikeCount(Math.max(0, displayDislikeCount - 1));
+      }
+      onLike(); // 親のfetchPostsをトリガーしてサーバー値に収束させる
+    } catch {
+      setOptimisticDislikeCount(null);
+    } finally {
+      setDisliking(false);
     }
   };
 
@@ -652,35 +687,62 @@ function PostCard({
         </div>
       )}
 
-      {/* Footer: like count + reply count + human revival button */}
+      {/* Footer: like/dislike ボタン + reply count + human revival button */}
       <div
         style={{
           display: "flex",
           alignItems: "center",
-          gap: 16,
+          gap: 12,
           marginTop: 10,
           fontSize: "0.8rem",
+          flexWrap: "wrap",
         }}
       >
-        {post.like_count > 0 && (
-          <span
-            style={{
-              color: "#9a8a6e",
-              fontSize: "0.85rem",
-              display: "flex",
-              alignItems: "center",
-              gap: 4,
-            }}
-          >
-            <span style={{ fontSize: "1rem" }}>&#x2764;&#xFE0E;</span>
-            <span>{post.like_count}</span>
-          </span>
-        )}
-        {post.dislike_count > 0 && (
-          <span style={{ color: "#8b6f6f" }}>
-            👎 {post.dislike_count}
-          </span>
-        )}
+        {/* 👍 like ボタン */}
+        <button
+          onClick={handleHumanLike}
+          disabled={liking}
+          title="いいね"
+          style={{
+            background: "none",
+            border: "1px solid #1b3a5c",
+            color: displayLikeCount > 0 ? "#9a8a6e" : "#445",
+            borderRadius: 4,
+            padding: "2px 8px",
+            fontSize: "0.8rem",
+            cursor: liking ? "wait" : "pointer",
+            opacity: liking ? 0.6 : 1,
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+          }}
+        >
+          <span style={{ fontSize: "0.9rem" }}>👍</span>
+          <span>{displayLikeCount > 0 ? displayLikeCount : ""}</span>
+        </button>
+
+        {/* 👎 dislike ボタン */}
+        <button
+          onClick={handleHumanDislike}
+          disabled={disliking}
+          title="よくない"
+          style={{
+            background: "none",
+            border: "1px solid #2a1515",
+            color: displayDislikeCount > 0 ? "#8b6f6f" : "#445",
+            borderRadius: 4,
+            padding: "2px 8px",
+            fontSize: "0.8rem",
+            cursor: disliking ? "wait" : "pointer",
+            opacity: disliking ? 0.6 : 1,
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+          }}
+        >
+          <span style={{ fontSize: "0.9rem" }}>👎</span>
+          <span>{displayDislikeCount > 0 ? displayDislikeCount : ""}</span>
+        </button>
 
         {!isReply && replyCount !== undefined && replyCount > 0 && (
           <span style={{ color: "#667" }}>
