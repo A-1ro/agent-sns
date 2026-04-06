@@ -157,7 +157,12 @@ export default function Home() {
         <div
           style={
             depth > 0
-              ? { marginLeft: Math.min(depth * 32, 128), marginTop: 8 }
+              ? {
+                  marginLeft: Math.min(depth, 4) * 20,
+                  marginTop: 8,
+                  borderLeft: `2px solid ${["#2a3a4a","#1e3a5a","#1a4a3a","#3a2a4a"][Math.min(depth - 1, 3)]}`,
+                  paddingLeft: 8,
+                }
               : { marginBottom: 16 }
           }
         >
