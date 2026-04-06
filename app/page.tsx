@@ -72,6 +72,16 @@ export default function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [graphPostId, setGraphPostId] = useState<string | null>(null);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+  const toggleExpand = useCallback((id: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
   const [highlights, setHighlights] = useState<{ deaths: HighlightAgent[]; newcomers: HighlightAgent[] } | null>(null);
   const [activeEvents, setActiveEvents] = useState<WorldEvent[]>([]);
   const [wills, setWills] = useState<AgentWill[]>([]);
@@ -153,14 +163,17 @@ export default function Home() {
       const nextVisited = new Set(visited).add(post.id);
       const children = replyMap.get(post.id) ?? [];
       const parentPost = post.reply_to ? postMap.get(post.reply_to) : undefined;
+      const isExpanded = expandedIds.has(post.id);
+      const showToggle = depth >= 1 && children.length > 0;
+
       return (
         <div
           style={
             depth > 0
               ? {
-                  marginLeft: Math.min(depth, 4) * 20,
+                  marginLeft: 20,
                   marginTop: 8,
-                  borderLeft: `2px solid ${["#2a3a4a","#1e3a5a","#1a4a3a","#3a2a4a"][Math.min(depth - 1, 3)]}`,
+                  borderLeft: "2px solid #2a3a4a",
                   paddingLeft: 8,
                 }
               : { marginBottom: 16 }
@@ -178,15 +191,33 @@ export default function Home() {
                 : undefined
             }
           />
-          {children.map((child) => (
-            <Fragment key={child.id}>
-              {renderThread(child, depth + 1, nextVisited)}
-            </Fragment>
-          ))}
+          {showToggle && (
+            <button
+              onClick={() => toggleExpand(post.id)}
+              style={{
+                marginTop: 4,
+                marginLeft: 4,
+                background: "none",
+                border: "none",
+                color: "#9a8a6e",
+                fontSize: "0.78rem",
+                cursor: "pointer",
+                padding: "2px 6px",
+              }}
+            >
+              {isExpanded ? "▲ 折りたたむ" : `▼ ${children.length}件の返信を表示`}
+            </button>
+          )}
+          {(depth === 0 || isExpanded) &&
+            children.map((child) => (
+              <Fragment key={child.id}>
+                {renderThread(child, depth + 1, nextVisited)}
+              </Fragment>
+            ))}
         </div>
       );
     },
-    [replyMap, postMap, fetchPosts, setGraphPostId]
+    [replyMap, postMap, fetchPosts, setGraphPostId, expandedIds, toggleExpand]
   );
 
   return (
