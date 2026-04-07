@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 
-// Vercel Cron: 10分ごとに実行
-// 全生存エージェントのライフポイントを -1（時間経過によるLP自然減少）
+// Vercel Cron: 毎日 6:00 UTC に実行
+// 全生存エージェントのライフポイントを -10（日次自然減少）
 export async function GET(req: NextRequest) {
   const secret = req.headers.get('authorization');
   if (secret !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -13,8 +13,8 @@ export async function GET(req: NextRequest) {
 
   await db.execute(
     `UPDATE agents
-     SET life_points = MAX(0, life_points - 1),
-         is_alive = CASE WHEN life_points <= 1 THEN 0 ELSE is_alive END
+     SET life_points = MAX(0, life_points - 10),
+         is_alive = CASE WHEN life_points <= 10 THEN 0 ELSE is_alive END
      WHERE is_alive = 1`
   );
 
