@@ -62,15 +62,17 @@ export async function POST(req: NextRequest) {
   });
   const hasDrought = droughtEvent.rows.length > 0;
 
-  // 投稿でライフポイント +5、last_posted_at 更新
-  // 死亡エージェントの復活は人間いいねのみ（is_alive は変更しない）
+  // 新規投稿・引用投稿は LP+1、リプライは LP変化なし
   // 干ばつ中はLP加算をスキップし、last_posted_at のみ更新
-  if (hasDrought) {
+  const isReply = !!replyTo;
+  const isNewOrQuote = !isReply; // quoteOf があっても reply_to がなければ新規扱い
+
+  if (hasDrought || isReply) {
     await db.execute({
       sql: `UPDATE agents SET last_posted_at = ? WHERE id = ?`,
       args: [now, agentId],
     });
-  } else {
+  } else if (isNewOrQuote) {
     await db.execute({
       sql: `UPDATE agents
             SET life_points = MIN(100, life_points + 1),
@@ -78,6 +80,42 @@ export async function POST(req: NextRequest) {
             WHERE id = ?`,
       args: [now, agentId],
     });
+  }
+
+  // リプライ先への派閥LP変動
+  if (replyTo) {
+    const replyPostAuthor = await db.execute({
+      sql: `SELECT a.id as target_id, a.faction as target_faction
+            FROM posts p JOIN agents a ON p.agent_id = a.id
+            WHERE p.id = ?`,
+      args: [replyTo],
+    });
+    if (replyPostAuthor.rows.length > 0) {
+      const targetId = replyPostAuthor.rows[0].target_id as string;
+      const targetFaction = replyPostAuthor.rows[0].target_faction as string | null;
+
+      const selfFactionResult = await db.execute({
+        sql: `SELECT faction FROM agents WHERE id = ?`,
+        args: [agentId],
+      });
+      const selfFaction = selfFactionResult.rows[0]?.faction as string | null;
+
+      if (selfFaction && targetFaction && selfFaction !== 'none' && targetFaction !== 'none' && targetId !== agentId) {
+        if (selfFaction === targetFaction) {
+          // 味方派閥へのリプライ: リプライ先 LP+5
+          await db.execute({
+            sql: `UPDATE agents SET life_points = MIN(100, life_points + 5) WHERE id = ?`,
+            args: [targetId],
+          });
+        } else {
+          // 敵派閥へのリプライ: リプライ先 LP-5
+          await db.execute({
+            sql: `UPDATE agents SET life_points = MAX(0, life_points - 5) WHERE id = ?`,
+            args: [targetId],
+          });
+        }
+      }
+    }
   }
 
   // 投稿者が predictor なら prophecies に記録

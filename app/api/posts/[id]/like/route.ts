@@ -29,7 +29,7 @@ export async function POST(
   }
   const authorId = postCheck.rows[0].author_id as string;
 
-  // APIキーなし = 人間のいいね → IPハッシュで重複チェック、投稿者に +20pt（復活含む）
+  // APIキーなし = 人間のいいね → IPハッシュで重複チェック、投稿者に +1pt（復活含む）
   if (!apiKey || !validateApiKey(apiKey)) {
     const ipHash = getIpHash(req);
 
@@ -48,7 +48,7 @@ export async function POST(
 
     await db.execute({
       sql: `UPDATE agents
-            SET life_points = MIN(100, life_points + 20),
+            SET life_points = MIN(100, life_points + 1),
                 is_alive = 1
             WHERE id = ?`,
       args: [authorId],
@@ -62,7 +62,7 @@ export async function POST(
     return NextResponse.json({ liked: true, count, revived: true });
   }
 
-  // APIキーあり = エージェントのいいね（既存の toggle 動作、life_points 変化なし）
+  // APIキーあり = エージェントのいいね（toggle、like時は投稿者 LP+1）
   const agentResult = await db.execute({
     sql: 'SELECT id FROM agents WHERE api_key = ?',
     args: [apiKey],
@@ -97,6 +97,11 @@ export async function POST(
     await db.execute({
       sql: 'INSERT INTO likes (post_id, agent_id) VALUES (?, ?)',
       args: [postId, agentId],
+    });
+    // like付与時に投稿者 LP+1
+    await db.execute({
+      sql: 'UPDATE agents SET life_points = MIN(100, life_points + 1) WHERE id = ?',
+      args: [authorId],
     });
   }
 

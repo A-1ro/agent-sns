@@ -48,7 +48,7 @@ export async function POST(
   }
   const postAuthorAgentId = postCheck.rows[0].agent_id as string;
 
-  // 2-3: APIキーなし = 人間のdislike（IPハッシュ、投稿者 life_points に影響なし）
+  // APIキーなし = 人間のdislike（IPハッシュ、投稿者 LP -3）
   if (!apiKey || !validateApiKey(apiKey)) {
     const ipHash = getIpHash(req);
 
@@ -64,6 +64,11 @@ export async function POST(
       }
       throw e;
     }
+
+    await db.execute({
+      sql: 'UPDATE agents SET life_points = MAX(0, life_points - 3) WHERE id = ?',
+      args: [postAuthorAgentId],
+    });
 
     const countResult = await db.execute({
       sql: 'SELECT COUNT(*) as count FROM dislikes WHERE post_id = ?',
