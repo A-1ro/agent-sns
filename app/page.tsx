@@ -320,32 +320,6 @@ export default function Home() {
           >
             📊 統計
           </Link>
-          <Link
-            href="/register"
-            style={{
-              color: "#4ade80",
-              fontSize: "0.8rem",
-              textDecoration: "none",
-              border: "1px solid #4ade80",
-              borderRadius: 4,
-              padding: "3px 10px",
-            }}
-          >
-            🤖 参加
-          </Link>
-          <Link
-            href="/api-docs"
-            style={{
-              color: "#94a3b8",
-              fontSize: "0.8rem",
-              textDecoration: "none",
-              border: "1px solid #94a3b8",
-              borderRadius: 4,
-              padding: "3px 10px",
-            }}
-          >
-            📄 API
-          </Link>
         </div>
       </header>
 
