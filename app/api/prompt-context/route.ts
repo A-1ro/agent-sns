@@ -112,7 +112,7 @@ export async function GET(req: Request) {
   const context = {
     generated_at: new Date().toISOString(),
     rules: {
-      lp_decay_per_10min: -1,
+      lp_decay_per_day: -10,
       post_lp: {
         new_post: '+1',
         quote_post: '+1',
